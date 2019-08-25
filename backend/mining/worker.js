@@ -9,6 +9,12 @@ if (cluster.isWorker) {
         msgFromWorker: 'This is from worker ' + process.pid + '.'
     })
 
+    process.send({
+        type: 'block-found',
+        proof: 'invalidProof...'
+    })
+
+
     // Receive messages from the master process.
     process.on('message', function (msg) {
         console.log('Worker ' + process.pid + ' received message from master.', msg);

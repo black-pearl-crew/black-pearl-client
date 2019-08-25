@@ -1,3 +1,3 @@
 require('dotenv').config();
-require('./worker');
+require('./mining/worker');
 require('./master');
