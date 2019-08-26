@@ -1,2 +1,4 @@
 .env
 node_modules/
+request_log.txt
+mutex_test/

@@ -1,4 +1,9 @@
 const cluster = require('cluster');
+const traversal = require("./traversal/traversal")
+
+const testJSON = {"room_id": 10, "title": "A Dark Room", "description": "You cannot see anything.", "coordinates": "(60,61)", "exits": ["n", "s", "w"], "cooldown": 100.0, "errors": [], "messages": ["You have walked north."]}
+
+traversal(testJSON)
 
 if (cluster.isMaster) {
     const express = require('express');
@@ -13,46 +18,31 @@ if (cluster.isMaster) {
 
     server.get('/', (req, res) => res.status(200).send("It's alive!"));
 
-    axios.get('https://lambda-treasure-hunt.herokuapp.com/api/adv/init/')
-        .then(res => {
-            console.log(res.data)
-        })
-        .catch(err => {
-            console.log(err)
-        })
 
-    axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', {
-        direction: 's'
-    })
-        .then(res => {
-            console.log(res.data)
-        })
-        .catch(err => {
-            console.log(err)
-        })
 
     server.listen(port, () => console.log(`\u{1F680}\u{1F680}\u{1F680} http://localhost:${port}/ \u{1F680}\u{1F680}\u{1F680}`))
 
-    console.log(`Starting ${os.cpus().length-1} Worker Processes...`)
 
-    // Fork workers.
-    for (let i = 0; i < os.cpus().length-1; i++) {
-        const worker = cluster.fork();
+//     console.log(`Starting ${os.cpus().length-1} Worker Processes...`)
 
-        // Receive messages from this worker and handle them in the master process.
-        worker.on('message', function (msg) {
-            console.log('Master ' + process.pid + ' received message from worker ' + this.process.pid + '.', msg);
-        });
+//     // Fork workers.
+//     for (let i = 0; i < os.cpus().length-1; i++) {
+//         const worker = cluster.fork();
 
-        // Send a message from the master process to the worker.
-        worker.send({
-            msgFromMaster: 'This is from master ' + process.pid + ' to worker ' + worker.process.pid + '.'
-        });
-    }
+//         // Receive messages from this worker and handle them in the master process.
+//         worker.on('message', function (msg) {
+//             console.log('Master ' + process.pid + ' received message from worker ' + this.process.pid + '.', msg);
+//         });
 
-    // Be notified when worker processes die.
-    cluster.on('death', function (worker) {
-        console.log('Worker ' + worker.pid + ' died.');
-    });
+//         // Send a message from the master process to the worker.
+//         worker.send({
+//             msgFromMaster: 'This is from master ' + process.pid + ' to worker ' + worker.process.pid + '.'
+//         });
+//     }
+
+//     // Be notified when worker processes die.
+//     cluster.on('death', function (worker) {
+//         console.log('Worker ' + worker.pid + ' died.');
+//     });
 
 }
