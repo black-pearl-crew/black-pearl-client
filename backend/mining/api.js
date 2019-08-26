@@ -19,10 +19,10 @@ if (cluster.isMaster) {
     function startMining() {
         lastProof()
             .then(lambdaRes => {
-                const {
+                var {
                     proof,
                     difficulty,
-                } = lambdaRes;
+                } = lambdaRes.data;
                 console.log(`\u{1F477}\u{1F477}\u{1F477} Starting ${os.cpus().length-1} Mining Workers... \u{1F477}\u{1F477}\u{1F477}`);
                 const workers = [];
 
@@ -38,8 +38,9 @@ if (cluster.isMaster) {
                                 // console.log(`A new block was found by Worker ${this.process.pid}`)
                                 //Submit Proof
                                 submitProof(msg.proof)
-                                    .then(_ => {
+                                    .then(res => {
                                         console.log('Proof Submitted')
+                                        console.log(res.data)
                                         // Make sure difficulty has not changed
                                         return lastProof();
                                     })
@@ -70,8 +71,8 @@ if (cluster.isMaster) {
                     // Send a message from the master process to the worker
                     worker.send({
                         type: 'initialize',
-                        proof,
-                        difficulty
+                        proof: proof,
+                        difficulty: difficulty
                     });
                 }
 

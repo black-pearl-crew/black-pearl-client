@@ -11,8 +11,8 @@ function shift() {
     if (difference < 0) difference = 0;
     console.log(`\u{26A0} \u{26A0} \u{26A0} Seconds Until Next Request: ${difference/1000} \u{26A0} \u{26A0} \u{26A0}`);
     setTimeout(() => {
-        const {promise,config} = queue[0];
-        console.log(`Processing Next Request In Queue... (${queue.length - 1} other requests waiting)`)
+        const {promise,config} = queue.shift();
+        console.log(`Processing Next Request In Queue... (${queue.length} other requests waiting)`)
         promise.resolve({
             ...config,
             headers: {
@@ -49,7 +49,6 @@ axios.interceptors.response.use((response) => {
     // console.log(`nextAvailableRequest Before: ${nextAvailableRequest}`)
     nextAvailableRequest = new Date(new Date().getTime() + 1000 * response.data.cooldown)
     // console.log(`nextAvailableRequest After: ${nextAvailableRequest}`)
-    queue.shift();
     if (queue.length > 0) {
         shift();
     }
@@ -61,7 +60,7 @@ axios.interceptors.response.use((response) => {
     // console.log(`nextAvailableRequest Before: ${nextAvailableRequest}`)
     nextAvailableRequest = new Date(new Date().getTime() + 1000 * error.response.data.cooldown)
     // console.log(`nextAvailableRequest After: ${nextAvailableRequest}`)
-    shift();
+    return Promise.reject(error);
 });
 
 module.exports = axios;
