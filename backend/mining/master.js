@@ -1,0 +1,123 @@
+const axios = require('../rateLimitedAxios');
+const cp = require('child_process');
+const os = require('os');
+
+function lastProof() {
+    return axios.get('https://lambda-treasure-hunt.herokuapp.com/api/bc/last_proof/');
+}
+
+function getBalance() {
+    return axios.get('https://lambda-treasure-hunt.herokuapp.com/api/bc/get_balance/');
+}
+
+function submitProof(proof) {
+    return axios.post('https://lambda-treasure-hunt.herokuapp.com/api/bc/mine/', {
+        proof
+    });
+}
+
+function startMining() {
+    lastProof()
+        .then(lambdaRes => {
+            var {
+                proof,
+                difficulty,
+            } = lambdaRes.data;
+            console.log(`\u{1F477}\u{1F477}\u{1F477} Starting ${os.cpus().length-1} Mining Workers... \u{1F477}\u{1F477}\u{1F477}`);
+            const workers = [];
+            var blockFound = false;
+
+            // Fork workers.
+            for (let i = 0; i < os.cpus().length - 1; i++) {
+                const worker = cp.fork('./mining/worker.js');
+                workers.push(worker);
+
+                // Receive messages from this worker and handle them in the master process.
+                worker.on('message', function (msg) {
+                    switch (msg.type) {
+                        case 'block-found':
+                            // console.log(`A new block was found by Worker ${this.process.pid}`)
+                            //Submit Proof
+                            if (!blockFound) {
+                                blockFound = true;
+                                submitProof(msg.proof)
+                                    .then(res => {
+                                        console.log('Proof Submitted');
+                                        console.log(res.data);
+                                        // Get last proof and make sure difficulty has not changed
+                                        return lastProof();
+                                    })
+                                    .then(({
+                                        data
+                                    }) => {
+                                        console.log("Updating Workers");
+                                        proof = data.proof;
+                                        difficulty = data.difficulty;
+                                        // Update workers of the last proof and new difficulty
+                                        workers.forEach(worker => {
+                                            worker.send({
+                                                type: 'block-found',
+                                                proof,
+                                                difficulty
+                                            });
+                                        });
+                                        blockFound = false;
+                                    })
+                                    .catch(err => {
+                                        console.log(err)
+                                    });
+                            }
+                        default:
+                            break;
+                    }
+                });
+
+                // Start mining
+                // Send a message from the master process to the worker
+                worker.send({
+                    type: 'initialize',
+                    proof: proof,
+                    difficulty: difficulty
+                });
+
+                // Check every 1.5 minutes if there's a new block
+                setInterval(() => {
+                    lastProof()
+                        .then(({
+                            data
+                        }) => {
+                            newProof = data.proof;
+                            newDifficulty = data.difficulty;
+
+                            // If the difficulty or last proof changed
+                            // Then update workers of the last proof and new difficulty
+                            if (difficulty !== newDifficulty) {
+                                console.log("Updating Workers...");
+                                proof = newProof;
+                                difficulty = newDifficulty;
+                                workers.forEach(worker => {
+                                    worker.send({
+                                        type: 'block-found',
+                                        proof,
+                                        difficulty
+                                    });
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            console.log(err)
+                        });
+                }, 90000);
+            }
+        })
+        .catch(err => {
+            startMining();
+        });
+}
+
+module.exports = {
+    lastProof,
+    submitProof,
+    getBalance,
+    startMining
+}
