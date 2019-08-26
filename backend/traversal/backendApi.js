@@ -20,5 +20,5 @@ function getRoom(roomId) {
 }
 
 function getGraph() {
-    return axios.get(`${process.env.SERVER}/api/get-graph/${roomId}`);
+    return axios.get(`${process.env.SERVER}/api/get-graph`);
 }
