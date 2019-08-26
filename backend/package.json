@@ -13,11 +13,7 @@
     "nodemon": "^1.19.1"
   },
   "scripts": {
-    "dev": "nodemon index.js",
-    "db_start_dev": "docker run --rm --name postgres_dev -d -p 6000:5432 postgres",
-    "db_reset_dev": "npx knex migrate:rollback && npx knex migrate:latest && npx knex seed:run",
-    "db_stop_dev": "docker container stop postgres_dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",

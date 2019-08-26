@@ -1,4 +1,4 @@
-const axios = require('../axios');
+const axios = require('../rateLimitedAxios');
 const cp = require('child_process');
 const os = require('os');
 

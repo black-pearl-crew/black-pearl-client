@@ -13,6 +13,26 @@ server.use('mining', miningRouter);
 
 //Mining Init
 const mining = require('./mining/master');
-mining.startMining();
+// mining.startMining();
 
 server.listen(port, () => console.log(`\u{1F680}\u{1F680}\u{1F680} http://localhost:${port}/ \u{1F680}\u{1F680}\u{1F680}`));
+
+const axios = require('axios');
+axios
+.get('https://lambda-treasure-hunt.herokuapp.com/api/adv/init/')
+    .then(res => {
+        console.log(res.data)
+    })
+    .catch(err => {
+        console.log(err)
+})
+
+axios
+.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', {
+    direction: 's'})
+    .then(res => {
+        console.log(res.data)
+    })
+    .catch(err => {
+        console.log(err)
+})
