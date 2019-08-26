@@ -14,7 +14,7 @@
   },
   "scripts": {
     "dev": "nodemon index.js",
-    "db_start_dev": "docker run --rm --name postgres_dev -d -p 6000:5432 postgres",
+    "db_start_dev": "docker run --rm --name postgres_dev -v bw2-pgdata:/var/lib/postgresql/data -d -p 6000:5432 postgres",
     "db_reset_dev": "npx knex migrate:rollback && npx knex migrate:latest",
     "db_stop_dev": "docker container stop postgres_dev",
     "test": "echo \"Error: no test specified\" && exit 1"
