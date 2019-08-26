@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const mining = require('./api');
+const miningApi = require('./master');
 
 router.get('/start', (req, res) => {
-    mining.lastProof()
+    miningApi.lastProof()
         .then(lambdaRes => {
             res.status(200).send(lambdaRes);
         })
@@ -13,7 +13,7 @@ router.get('/start', (req, res) => {
 });
 
 router.get('/balance', (req, res) => {
-    mining.getBalance()
+    miningApi.getBalance()
         .then(lambdaRes => {
             res.status(200).send(lambdaRes);
         })
