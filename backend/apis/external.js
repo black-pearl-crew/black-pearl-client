@@ -6,6 +6,7 @@ module.exports = {
     pickup,
     drop,
     sell,
+    transmogrify,
     init,
     move,
     wiseExplorer,
@@ -19,10 +20,9 @@ module.exports = {
     LAMBDA'S BACKEND ENDPOINTS
 */
 
+
 function status() {
-    return lambdaAxios.post(`${process.env.LAMBDA}/adv/status/`, {
-        name
-    });
+    return lambdaAxios.post(`${process.env.LAMBDA}/adv/status/`);
 }
 
 function pickup(name) {
@@ -43,8 +43,14 @@ function sell(name) {
     });
 }
 
+function transmogrify(name) {
+    return lambdaAxios.post(`${process.env.LAMBDA}/adv/transmogrify/`, {
+        name
+    });
+}
+
 function init() {
-    return lambdaAxios.post(`${process.env.LAMBDA}/adv/init/`);
+    return lambdaAxios.get(`${process.env.LAMBDA}/adv/init/`);
 }
 
 function move(direction) {
@@ -53,12 +59,16 @@ function move(direction) {
     });
 }
 
+// An accurate map is the wise explorer's best friend.
+// By predicting the ID of the destination room,
+// you can reduce your action cooldown by 50%.
 function wiseExplorer(direction, next_room_id) {
     return lambdaAxios.post(`${process.env.LAMBDA}/adv/move/`, {
         direction,
         next_room_id
     });
 }
+
 
 /*
     OUR BACKEND ENDPOINTS

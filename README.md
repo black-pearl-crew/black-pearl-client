@@ -1,15 +1,28 @@
 # black-pearl
 
-## mining/
-All mining functionality is container within the `mining/` folder.
-`master.js` runs on the main process, orchestrates/communicates with all of the workers, and handles communication to and from Lambda's API.
-`worker.js` runs on a child process and is where the actual mining takes place- the master launches however many mining child processes as you have CPU cores (minus one for the main process).
-`router.js` is an express router with endpoints with which you can control the mining process.
+## File Structure
+```
+/frontend - (React App)
+/backend - (Express App)
+    /apis - (External and Internal APIs)
+    /routers - (Express Routers)
+    /util - (Utility Files)
+```
 
-## rateLimitedAxios.js
+## miningWorker.js
+This is the child process that is forked off for however many CPU cores your computer has (minus one for the master process).
+This is what powers parallel computing of the hash. The workers are controlled in the mining API
+
+
+## lambdaAxios.js
 The Lambda API has a cooldown. :\
 Use the axios exported from rateLimitedAxios.js which abstracts away the cooldown handling.
 It also hydrates all axios requests with your Lambda API key in the header and sets the Content-Type.
+
+## backendAxios.js
+The Lambda API has a cooldown. :\
+Use the axios exported from backendAxios.js to communicate with our backend.
+It hydrates all axios requests with the Authorization header and sets the Content-Type.
 
 ## Lambda API /init Response
 ```
