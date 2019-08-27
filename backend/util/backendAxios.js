@@ -1,7 +1,7 @@
-const axios = require('axios');
+const backendAxios = require('axios').create();
 
 // Add a request interceptor which pushes request to the queue
-axios.interceptors.request.use(function (config) {
+backendAxios.interceptors.request.use(function (config) {
     return {
         ...config,
         headers: {
@@ -13,4 +13,4 @@ axios.interceptors.request.use(function (config) {
     return Promise.reject(error);
 });
 
-module.exports = axios;
+module.exports = backendAxios;

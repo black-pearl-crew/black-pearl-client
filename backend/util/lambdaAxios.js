@@ -1,13 +1,28 @@
-const axios = require('axios');
-let nextAvailableRequest = null;
+const lambdaAxios = require('axios').create();
+const fs = require('fs');
 let queue = [];
 
-function shift() {
-    currentDate = new Date();
-    if(!nextAvailableRequest) {
-        nextAvailableRequest = new Date();
+//Gets cooldown timestamp - Writes curent timestamp to file if .cooldown file does not exits yet
+function getCooldown() {
+    try {
+        const data = fs.readFileSync('.cooldown', 'utf8');
+        return Number(data.toString());
+    } catch(e) {
+        const now = new Date().getTime();
+        fs.writeFileSync(".cooldown", now.toString());
+        return now;
     }
-    let difference = nextAvailableRequest.getTime() - currentDate.getTime()
+}
+
+//Sets cooldown timestamp by writing it to the .cooldown file
+function setCooldown(date) {
+    fs.writeFileSync(".cooldown", date.getTime().toString());
+}
+
+function shift() {
+    currentDate = new Date().getTime();
+    const nextAvailableRequest = getCooldown();
+    let difference = nextAvailableRequest - currentDate;
     if (difference < 0) difference = 0;
     console.log(`\u{26A0} \u{26A0} \u{26A0} Seconds Until Next Request: ${difference/1000} \u{26A0} \u{26A0} \u{26A0}`);
     setTimeout(() => {
@@ -24,14 +39,14 @@ function shift() {
 }
 
 // Add a request interceptor which pushes request to the queue
-axios.interceptors.request.use(function (config) {
+lambdaAxios.interceptors.request.use(function (config) {
     var res;
     const promise = new Promise((resolve) => {
         res = resolve;
     });
     promise.resolve = res;
     queue.push({promise,config});
-    console.log(`Request Added To Queue (${queue.length} Requests In Queue)`)
+    console.log(`${config.method} ${config.url.replace('https://lambda-treasure-hunt.herokuapp.com','')} Added To Request Queue (${queue.length} Requests In Queue)`);
     if (queue.length === 1) {
         shift();
     }
@@ -43,24 +58,20 @@ axios.interceptors.request.use(function (config) {
 // Add a response interceptor which:
 // B. Calls shift() if queue is non-empty
 // C. Updates the nextAvailableRequest
-axios.interceptors.response.use((response) => {
-    console.log("Success...")
-    console.log(`New Cooldown: ${response.data.cooldown}`)
-    // console.log(`nextAvailableRequest Before: ${nextAvailableRequest}`)
-    nextAvailableRequest = new Date(new Date().getTime() + 1000 * response.data.cooldown)
-    // console.log(`nextAvailableRequest After: ${nextAvailableRequest}`)
+lambdaAxios.interceptors.response.use((response) => {
+    console.log("Success...");
+    console.log(`New Cooldown: ${response.data.cooldown}`);
+    setCooldown(new Date(new Date().getTime() + 1000 * response.data.cooldown));
     if (queue.length > 0) {
         shift();
     }
     return response;
 }, (error) => {
-    console.log("Error...")
-    console.log(`New Cooldown: ${error.response.data.cooldown}`)
-    nextAvailableRequest = new Date()
-    // console.log(`nextAvailableRequest Before: ${nextAvailableRequest}`)
-    nextAvailableRequest = new Date(new Date().getTime() + 1000 * error.response.data.cooldown)
-    // console.log(`nextAvailableRequest After: ${nextAvailableRequest}`)
+    console.log(error)
+    console.log("Error...");
+    console.log(`New Cooldown: ${error.response.data.cooldown}`);
+    setCooldown(new Date(new Date().getTime() + 1000 * error.response.data.cooldown));
     return Promise.reject(error);
 });
 
-module.exports = axios;
+module.exports = lambdaAxios;

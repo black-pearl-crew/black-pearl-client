@@ -1,10 +1,11 @@
 console.log(`[Worker# ${process.pid}] Initialized. \u{1F680}\u{1F680}\u{1F680}\u{1F680}`);
 const crypto = require('crypto');
 let positive = Math.random() > .5 ? 1 : -1;
-let nonce = Math.ceil(Math.random() * 21474836 * Math.random() * positive)
+let nonce = Math.ceil(Math.random() * 21474836 * Math.random() * positive);
+let last_nonce = '00';
 let increment = Math.random() > .5 ? 1 : -1;
 let hash = crypto.createHash('sha256')
-    .update(nonce.toString())
+    .update(last_nonce + nonce.toString())
     .digest('hex');
 let difficulty = 100;
 let reset = false;
@@ -15,6 +16,7 @@ mine();
 process.on('message', function (msg) {
     console.log(`[Worker# ${process.pid}] New Difficulty Received: ${msg.difficulty} \u{1F4D3}\u{1F4D3}\u{1F4D3}`);
     difficulty = msg.difficulty;
+    last_nonce = msg.proof;
     positive = Math.random() > .5 ? 1 : -1;
     increment = Math.random() > .5 ? 1 : -1;
     nonce = Math.ceil(Math.random() * 21474836 * Math.random() * positive);
@@ -28,7 +30,7 @@ function mine() {
     //Increase nonce and recalculate hash
     nonce += increment;
     hash = crypto.createHash('sha256')
-        .update(nonce.toString())
+        .update(last_nonce + nonce.toString())
         .digest('hex');
 
     if (nonce % 99999999999 === 0)
