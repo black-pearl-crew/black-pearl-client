@@ -16,7 +16,7 @@ function shift() {
         promise.resolve({
             ...config,
             headers: {
-                'Authorization': `Token ${process.env.TOKEN}`,
+                'Authorization': `Token ${process.env.LAMBDA_TOKEN}`,
                 'Content-Type': 'application/json'
             }
         });

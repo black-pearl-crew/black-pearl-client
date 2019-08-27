@@ -1,6 +1,15 @@
-const axios = require('../rateLimitedAxios');
+const axios = require('../util/lambdaAxios');
 const cp = require('child_process');
 const os = require('os');
+const workers = [];
+
+module.exports = {
+    lastProof,
+    submitProof,
+    getBalance,
+    startMining,
+    stopMining
+}
 
 function lastProof() {
     return axios.get('https://lambda-treasure-hunt.herokuapp.com/api/bc/last_proof/');
@@ -16,6 +25,12 @@ function submitProof(proof) {
     });
 }
 
+function stopMining() {
+    workers.forEach(worker => {
+        worker.kill();
+    });
+}
+
 function startMining() {
     lastProof()
         .then(lambdaRes => {
@@ -24,12 +39,11 @@ function startMining() {
                 difficulty,
             } = lambdaRes.data;
             console.log(`\u{1F477}\u{1F477}\u{1F477} Starting ${os.cpus().length-1} Mining Workers... \u{1F477}\u{1F477}\u{1F477}`);
-            const workers = [];
             var blockFound = false;
 
             // Fork workers.
             for (let i = 0; i < os.cpus().length - 1; i++) {
-                const worker = cp.fork('./mining/worker.js');
+                const worker = cp.fork('./util/miningWorker.js');
                 workers.push(worker);
 
                 // Receive messages from this worker and handle them in the master process.
@@ -111,13 +125,6 @@ function startMining() {
             }
         })
         .catch(err => {
-            startMining();
+            console.log(err)
         });
-}
-
-module.exports = {
-    lastProof,
-    submitProof,
-    getBalance,
-    startMining
 }
