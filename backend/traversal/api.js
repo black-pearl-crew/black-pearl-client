@@ -3,19 +3,72 @@ const axios = require("../apis/external")
 
 class Traverse {
     constructor(room,graph){
-        this.graph = graph
+        this._graph = graph
         this.currentRoom = room
         this.stack = []
         this.visited = new Set();
+    }
+
+    get graph(){
+        return this._graph
+    }
+
+    set graph(obj){
+        this._graph = obj
+        this.visited = new Set(Object.keys(obj))
+        
     }
 
     get graphLen(){
         return Object.keys(this.graph).length
     }
 
-    bft(){
-        console.log("bft")
-        throw new Error("Hi it's me")
+    getShortestPath(unvisited,parentTree){
+        const shortest_path = []
+        let parent = parentTree[unvisited]
+        shortest_path.push(unvisited)
+        shortest_path.push(parent)
+        // will stop at null value
+        while(parentTree[parent]){
+            parent = parentTree[parent]
+            shortest_path.push(parent)
+        }
+        shortest_path.reverse()
+        return shortest_path
+    }
+
+    bfs(){
+        let vertex = this.currentRoom
+        const q = [vertex]
+        const parentTree = {[vertex]:null}
+        const visited = new Set()
+        let neighbors
+        let neighbor
+        let shortestPath
+        while(visited.size < this.graphLen){
+            vertex = q.shift()
+            visited.add(vertex)
+            neighbors = this.graph[vertex]
+            
+            for(i in neighbors){
+                neighbor = neighbors[i]
+                if (neighbor === null) {
+                    
+                    parentTree[vertex] = neighbor
+                    console.log(vertex,"vertex has an unvisited direction",parentTree)
+                    shortestPath =  this.getShortestPath(vertex,parentTree)
+                    break
+                } else {
+                    q.push(neighbors[i])
+                    parentTree[neighbor] = vertex
+                
+                }
+            }
+
+        }
+
+        return shortestPath
+
     }
 
     randomInt(max){
@@ -24,8 +77,12 @@ class Traverse {
 
     move(direction){
         axios.move(direction)
-        .then(res => addRoom(res.data))
         .then(res => {
+            // check if room exists in current cache or if connection is not present
+            return addRoom(res.data)
+        })
+        .then(res => {
+            console.log(res,"res from move")
             this.currentRoom = res[0]
             this.graph = res[1]
         })
@@ -60,13 +117,17 @@ class Traverse {
                 const prevRoom = this.stack.pop()
                 console.log("dir")
                 this.dirLookUp(this.currentRoom,prevRoom)
-                this.bft()
+
+                // still working on bfs
+                // return this.bfs()
+                throw new Error
             } else {
                 console.log("hit else in traversal")
-                this.bft()
+                // return this.bfs()
+                throw new Error
             }
-
-            this.move(exit)
+            this.visited.add(this.currentRoom)
+            return this.move(exit)
  
 
         } else {
@@ -74,8 +135,9 @@ class Traverse {
         }
     }
 
-    getNeighbors(){
-        const directions = this.graph[this.currentRoom]
+    // checks for unvisited neighbors in the visited property
+    getNeighbors(neighbor=null){
+        const directions = neighbor === null ? this.graph[this.currentRoom] : this.graph[neighbor]
         console.log(this.graph,this.currentRoom,"neighbors")
         const unvisited = []
         for(let i in directions){
@@ -88,6 +150,35 @@ class Traverse {
 
 }
 
+function reloadGraph(){
+    Promise.all([getCurrentRoom(),getGraph()])
+    .then(res => {
+        console.log(res,"res from reload graph")
+        throw new Error("testing reload graph")
+        const currentRoom = res[0]["room_id"]
+        return [currentRoom,res[1]]
+    })
+    .catch(printErrors)
+    
+}
+
+function getCurrentRoom(){
+    return axios.init()
+    .then(res => {
+        return res.data
+    })
+    .catch(printErrors)
+}
+
+function getGraph(){
+    return axios.getGraph()
+    .then(res => {
+        const graph = parseGraph(res.data)
+        return graph
+    }).catch(printErrors)
+}
+
+
 function addRoom(room){
     const request = parseRoomData(room)
     return axios.addRoom(request)
@@ -95,7 +186,10 @@ function addRoom(room){
                 console.log("hit",res.data)
                 return [room["room_id"],parseGraph(res.data)]
             })
-            .catch(printErrors)
+            .catch((err) => {
+                console.log(Object.keys(err),"add room error")
+                return reloadGraph()
+            })
 }
 
 function startCheck(room){
@@ -103,12 +197,14 @@ function startCheck(room){
     console.log("\n=============\ncurrent room from Lambda\n",room)
     return axios.getGraph()
     .then(res => {
+        
         const graph = parseGraph(res.data)
         console.log("parsed graph\n",graph)
         return graph
     })
     .then( graph => {
         const room_id = room["room_id"]
+        console.log(graph,"start check graph")
         if(!graph || !graph[room_id]){
             return addRoom(room)
         } else {
@@ -128,19 +224,20 @@ function traversal(){
     .then(res => {
         console.log(res,"traversal res")
         const traveler = new Traverse(res[0],res[1])
-        traveler.traverse()
+        return traveler.traverse()
     })
     .catch(printErrors)
 }
 
 function printErrors(error){
+    console.log(error)
     throw error
 }
 
 
 function parseGraph(arr){
+    const graph = {}
     if (arr.length !== 0){
-        const graph = {}
         console.log("parseGraph array",arr, graph)
         for(let i of arr){
             const key = i["room_id"]
@@ -155,7 +252,7 @@ function parseGraph(arr){
             graph[key] = {...directions}
         }
         return graph
-    } 
+    }
     return undefined
 }
 
