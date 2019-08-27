@@ -26,9 +26,11 @@ function submitProof(proof) {
 }
 
 function stopMining() {
+    console.log("\u{1F534}\u{1F534}\u{1F534} Mining Stopping \u{1F534}\u{1F534}\u{1F534}")
     workers.forEach(worker => {
         worker.kill();
     });
+    console.log("\u{1F387}\u{1F387}\u{1F387} All Workers Terminated \u{1F387}\u{1F387}\u{1F387}") 
 }
 
 function startMining() {
@@ -69,11 +71,12 @@ function startMining() {
                                         difficulty = data.difficulty;
                                         // Update workers of the last proof and new difficulty
                                         workers.forEach(worker => {
-                                            worker.send({
-                                                type: 'block-found',
-                                                proof,
-                                                difficulty
-                                            });
+                                            if (!worker.isDead())
+                                                worker.send({
+                                                    type: 'block-found',
+                                                    proof,
+                                                    difficulty
+                                                });
                                         });
                                         blockFound = false;
                                     })
@@ -110,11 +113,12 @@ function startMining() {
                                 proof = newProof;
                                 difficulty = newDifficulty;
                                 workers.forEach(worker => {
-                                    worker.send({
-                                        type: 'block-found',
-                                        proof,
-                                        difficulty
-                                    });
+                                    if (!worker.isDead())
+                                        worker.send({
+                                            type: 'block-found',
+                                            proof,
+                                            difficulty
+                                        });
                                 });
                             }
                         })
