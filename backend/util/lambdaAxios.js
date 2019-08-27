@@ -1,11 +1,11 @@
-const axios = require('axios');
+const axios = require('axios').create();
 const fs = require('fs');
 let queue = [];
 
 function getCooldown() {
     try {
         const data = fs.readFileSync('.cooldown', 'utf8');
-        return number(data.toString())
+        return Number(data.toString())
     } catch(e) {
         const now = new Date().getTime()
         fs.writeFileSync(".cooldown", now.toString());

@@ -17,6 +17,7 @@ module.exports = {
     LAMBDA'S BACKEND ENDPOINTS
 */
 
+
 function status() {
     const lambdaAxios = require('../util/lambdaAxios');
     return lambdaAxios.post(`${process.env.LAMBDA}/adv/status/`, {

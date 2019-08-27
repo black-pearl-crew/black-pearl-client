@@ -1,4 +1,4 @@
-const axios = require('axios');
+const axios = require('axios').create();
 
 // Add a request interceptor which pushes request to the queue
 axios.interceptors.request.use(function (config) {
