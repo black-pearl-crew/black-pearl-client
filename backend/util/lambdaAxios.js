@@ -2,6 +2,7 @@ const lambdaAxios = require('axios').create();
 const fs = require('fs');
 let queue = [];
 
+//Gets cooldown timestamp - Writes curent timestamp to file if .cooldown file does not exits yet
 function getCooldown() {
     try {
         const data = fs.readFileSync('.cooldown', 'utf8');
@@ -13,6 +14,7 @@ function getCooldown() {
     }
 }
 
+//Sets cooldown timestamp by writing it to the .cooldown file
 function setCooldown(date) {
     fs.writeFileSync(".cooldown", date.getTime().toString());
 }

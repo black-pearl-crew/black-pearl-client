@@ -20,6 +20,7 @@ module.exports = {
     LAMBDA'S BACKEND ENDPOINTS
 */
 
+
 function status() {
     return lambdaAxios.post(`${process.env.LAMBDA}/adv/status/`);
 }

@@ -18,12 +18,9 @@ const playerRouter = require('./routers/player');
 server.use('/player', playerRouter);
 const roomsRouter = require('./routers/rooms');
 server.use('/rooms', roomsRouter);
-const external = require('./apis/external');
 
-external.init()
-.then(res => {
-    console.log(res.data)
-    return external.getGraph()
-});
+//Traversal- For testing purposes
+const traversal = require("./traversal/api")
+traversal()
 
 server.listen(port, () => console.log(`\u{1F680}\u{1F680}\u{1F680} http://localhost:${port}/ \u{1F680}\u{1F680}\u{1F680}`));
