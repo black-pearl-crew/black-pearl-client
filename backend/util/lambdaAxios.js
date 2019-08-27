@@ -1,15 +1,15 @@
-const axios = require('axios');
+const lambdaAxios = require('axios').create();
 const fs = require('fs');
 let queue = [];
 
 function getCooldown() {
     try {
         const data = fs.readFileSync('.cooldown', 'utf8');
-        return number(data.toString())
+        return Number(data.toString());
     } catch(e) {
-        const now = new Date().getTime()
+        const now = new Date().getTime();
         fs.writeFileSync(".cooldown", now.toString());
-        return now
+        return now;
     }
 }
 
@@ -37,7 +37,7 @@ function shift() {
 }
 
 // Add a request interceptor which pushes request to the queue
-axios.interceptors.request.use(function (config) {
+lambdaAxios.interceptors.request.use(function (config) {
     var res;
     const promise = new Promise((resolve) => {
         res = resolve;
@@ -56,7 +56,7 @@ axios.interceptors.request.use(function (config) {
 // Add a response interceptor which:
 // B. Calls shift() if queue is non-empty
 // C. Updates the nextAvailableRequest
-axios.interceptors.response.use((response) => {
+lambdaAxios.interceptors.response.use((response) => {
     console.log("Success...");
     console.log(`New Cooldown: ${response.data.cooldown}`);
     setCooldown(new Date(new Date().getTime() + 1000 * response.data.cooldown));
@@ -65,10 +65,11 @@ axios.interceptors.response.use((response) => {
     }
     return response;
 }, (error) => {
+    console.log(error)
     console.log("Error...");
     console.log(`New Cooldown: ${error.response.data.cooldown}`);
     setCooldown(new Date(new Date().getTime() + 1000 * error.response.data.cooldown));
     return Promise.reject(error);
 });
 
-module.exports = axios;
+module.exports = lambdaAxios;
