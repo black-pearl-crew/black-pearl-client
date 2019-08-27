@@ -20,7 +20,7 @@ function setCooldown(date) {
 }
 
 function shift() {
-    currentDate = new Date().getTime();
+    const currentDate = new Date().getTime();
     const nextAvailableRequest = getCooldown();
     let difference = nextAvailableRequest - currentDate;
     if (difference < 0) difference = 0;
