@@ -155,7 +155,7 @@ class Traverse {
                 this.currentRoom = this.graph[previousRoomId][direction];
                 if (this.currentRoom === null) {
                     console.log("\nBUGG")
-                    console.log("this.graph", this.graph)
+                    // console.log("this.graph", this.graph)
                     console.log("previousRoomId", previousRoomId)
                     console.log("direction", direction)
                 }
@@ -258,8 +258,26 @@ class Traverse {
         
     }
 
-    changeName(){
-         const roomID = this.findRoomByTitle("Pirate Ry's")
+    findMine(){
+        return this.goToPoint("Mt. Holloway")
+        .then(res => {
+            console.log(res)
+            return this.rawGraph[this.currentRoom]
+        })
+        .catch()
+    }
+
+    findShrine(temple){
+        return this.goToPoint(temple)
+        .then(res => {
+            console.log(res)
+            return this.rawGraph[this.currentRoom]
+        })
+        .catch(printErrors)
+    }
+
+    goToPoint(room_title){
+         const roomID = this.findRoomByTitle(room_title)
          const path = this.bfs("roomId",parseInt(roomID))
          if (path === null){
             throw new Error("Error in path")
@@ -270,7 +288,8 @@ class Traverse {
             if (this.currentRoom.toString() === roomID){
                 return this.currentRoom
             } else {
-                throw new Error("Error in change name")
+                console.log(roomID,this.currentRoom.toString())
+                throw new Error("Error in go to point")
             }
             
         })
@@ -459,24 +478,64 @@ function initExplore(){
         .catch(printErrors)
 }
 
-function requestName(){
-
+function requestName(name){
+    return axios.changeName(name)
+    .then(res => {
+        return res.data
+    })
+    .catch(printErrors)
 }
 
-function changeName(){
-    // lambda init for room
-    // parse response
-    // get room number
-    // traverse
-    // traverse returns graph
-    // get raw graph from the db
-    // check if graph returned is the same graph has the same length
-    // if it does, run function
-    // else, throw error
+function pray(){
+    return axios.pray()
+    .then(res => {
+        return res.data
+    })
+    .catch(printErrors)
+}
+
+function prayAtShrine(temple){
     return initExplore()
     .then( res => {
         res.traveler.rawGraph = parseRawGraph(res.rawGraph)
-        return res.traveler.changeName()
+        return res.traveler.findShrine(temple)
+    })
+    .then(res => {
+        console.log(res,"\nFound a place to pray")
+        return pray()
+    })
+    .then(res => {
+        console.log(res,"from pray at shrine")
+        return res.data
+    })
+    .catch(printErrors)
+}
+
+function findMine(){
+    return initExplore()
+    .then( res => {
+        res.traveler.rawGraph = parseRawGraph(res.rawGraph)
+        return res.traveler.findMine()
+    })
+    .then(res => {
+        console.log(res,"\nFound a place to mine")
+        return res
+    })
+    .catch(printErrors)
+}
+
+function changeName(name){
+    return initExplore()
+    .then( res => {
+        res.traveler.rawGraph = parseRawGraph(res.rawGraph)
+        return res.traveler.goToPoint("Pirate Ry's")
+    })
+    .then(() => {
+        return requestName(name)
+    })
+    .then(res => {
+        console.log(res,"\nResponse from the Name Changer")
+        return res
     })
     .catch(printErrors)
 }
@@ -492,7 +551,6 @@ function parseRawGraph(arr){
         const key = i['room_id']
         graph[key] = {'title':i['title'],'description':i['description']}
     }
-    // console.log(graph)
     return graph
 }
 
@@ -555,7 +613,10 @@ function parseRoomData(room) {
 
 module.exports = {
     traversal,
-    collectTreasure
+    collectTreasure,
+    changeName,
+    findMine,
+    prayAtShrine
 }
 
 

@@ -11,6 +11,7 @@ module.exports = {
     transmogrify,
     init,
     move,
+    pray,
     changeName,
     wiseExplorer,
     addRoom,
@@ -83,8 +84,12 @@ function move(direction) {
 
 function changeName(name) {
     return lambdaAxios.post(`${process.env.LAMBDA}/adv/change_name/`, {
-        name
+        name,'confirm':'aye'
     });
+}
+
+function pray() {
+    return lambdaAxios.post(`${process.env.LAMBDA}/adv/pray/`, {});
 }
 
 
