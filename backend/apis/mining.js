@@ -30,7 +30,7 @@ function stopMining() {
     workers.forEach(worker => {
         worker.kill();
     });
-    console.log("\u{1F387}\u{1F387}\u{1F387} All Workers Terminated \u{1F387}\u{1F387}\u{1F387}") 
+    console.log("\u{1F387}\u{1F387}\u{1F387} All Workers Terminated \u{1F387}\u{1F387}\u{1F387}")
 }
 
 function startMining() {
@@ -50,9 +50,10 @@ function startMining() {
 
                 // Receive messages from this worker and handle them in the master process.
                 worker.on('message', function (msg) {
+                    console.log(msg.type, '\u{1F47E}')
                     switch (msg.type) {
                         case 'block-found':
-                            // console.log(`A new block was found by Worker ${this.process.pid}`)
+                            console.log(`typeof nonce: ${typeof msg.proof} Value of nonce: ${msg.proof}`)
                             //Submit Proof
                             if (!blockFound) {
                                 blockFound = true;
@@ -71,12 +72,11 @@ function startMining() {
                                         difficulty = data.difficulty;
                                         // Update workers of the last proof and new difficulty
                                         workers.forEach(worker => {
-                                            if (!worker.isDead())
-                                                worker.send({
-                                                    type: 'block-found',
-                                                    proof,
-                                                    difficulty
-                                                });
+                                            worker.send({
+                                                type: 'block-found',
+                                                proof,
+                                                difficulty
+                                            });
                                         });
                                         blockFound = false;
                                     })
@@ -84,8 +84,8 @@ function startMining() {
                                         console.log(err)
                                     });
                             }
-                        default:
-                            break;
+                            default:
+                                break;
                     }
                 });
 
@@ -96,37 +96,36 @@ function startMining() {
                     proof: proof,
                     difficulty: difficulty
                 });
-
-                // Check every 1.5 minutes if there's a new block
-                setInterval(() => {
-                    lastProof()
-                        .then(({
-                            data
-                        }) => {
-                            newProof = data.proof;
-                            newDifficulty = data.difficulty;
-
-                            // If the difficulty or last proof changed
-                            // Then update workers of the last proof and new difficulty
-                            if (difficulty !== newDifficulty) {
-                                console.log("Updating Workers...");
-                                proof = newProof;
-                                difficulty = newDifficulty;
-                                workers.forEach(worker => {
-                                    if (!worker.isDead())
-                                        worker.send({
-                                            type: 'block-found',
-                                            proof,
-                                            difficulty
-                                        });
-                                });
-                            }
-                        })
-                        .catch(err => {
-                            console.log(err)
-                        });
-                }, 90000);
             }
+
+            // Check every 1.5 minutes if there's a new block
+            setInterval(() => {
+                lastProof()
+                    .then(({
+                        data
+                    }) => {
+                        newProof = data.proof;
+                        newDifficulty = data.difficulty;
+
+                        // If the difficulty or last proof changed
+                        // Then update workers of the last proof and new difficulty
+                        if (difficulty !== newDifficulty) {
+                            console.log("Updating Workers...");
+                            proof = newProof;
+                            difficulty = newDifficulty;
+                            workers.forEach(worker => {
+                                worker.send({
+                                    type: 'block-found',
+                                    proof,
+                                    difficulty
+                                });
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        console.log(err)
+                    });
+            }, 120000);
         })
         .catch(err => {
             console.log(err)
