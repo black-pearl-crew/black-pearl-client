@@ -33,8 +33,12 @@ function mine() {
         .update(last_nonce + nonce.toString())
         .digest('hex');
 
-    if (nonce % 99999999999 === 0)
+    if (hash.startsWith('000000')) {
         console.log(`[Worker# ${process.pid}] Mining On Nonce# ${nonce} \u{26CF} \u{26CF} \u{26CF} Looking For: ${"0".repeat(difficulty)}`);
+        console.log(`[Worker# ${process.pid}] Hash = ${hash} Generated From: ${last_nonce} and ${nonce}`);
+        const validMoji = hash.startsWith("0".repeat(difficulty)) ? '\u{1F535}\u{1F535}\u{1F535}' : '\u{1F534}\u{1F534}\u{1F534}';
+        console.log(`[Worker# ${process.pid}] Valid Hash? : ${hash.startsWith("0".repeat(difficulty))} ${validMoji}`);
+    }
     const validHash = hash.startsWith("0".repeat(difficulty));
 
     if (validHash) {

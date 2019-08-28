@@ -58,8 +58,12 @@ function startMining() {
                                 blockFound = true;
                                 submitProof(msg.proof)
                                     .then(res => {
-                                        console.log('Proof Submitted');
-                                        console.log(res.data);
+                                        console.log(`Proof Submitted Successfully \u{1F535}\u{1F535}\u{1F535}`);
+                                        if (res.data.messages[0].includes('New Block Forged')) {
+                                            console.log('New Block Forged \u{1F973}\u{1F973}\u{1F973}\u{1F973}')
+                                        } else {
+                                            console.log(`${res.data.messages[0]} SAD! \u{1F92A}\u{1F92A}\u{1F92A}`)
+                                        }
                                         // Get last proof and make sure difficulty has not changed
                                         return lastProof();
                                     })
@@ -69,16 +73,15 @@ function startMining() {
                                         console.log("Updating Workers");
                                         proof = data.proof;
                                         difficulty = data.difficulty;
+                                        blockFound = false;
                                         // Update workers of the last proof and new difficulty
                                         workers.forEach(worker => {
-                                            if (!worker.isDead())
-                                                worker.send({
-                                                    type: 'block-found',
-                                                    proof,
-                                                    difficulty
-                                                });
+                                            worker.send({
+                                                type: 'block-found',
+                                                proof,
+                                                difficulty
+                                            });
                                         });
-                                        blockFound = false;
                                     })
                                     .catch(err => {
                                         console.log(err)
