@@ -50,7 +50,6 @@ function startMining() {
 
                 // Receive messages from this worker and handle them in the master process.
                 worker.on('message', function (msg) {
-                    console.log(msg.type, '\u{1F47E}')
                     switch (msg.type) {
                         case 'block-found':
                             console.log(`typeof nonce: ${typeof msg.proof} Value of nonce: ${msg.proof}`)
@@ -74,6 +73,7 @@ function startMining() {
                                         console.log("Updating Workers");
                                         proof = data.proof;
                                         difficulty = data.difficulty;
+                                        blockFound = false;
                                         // Update workers of the last proof and new difficulty
                                         workers.forEach(worker => {
                                             worker.send({
@@ -82,7 +82,6 @@ function startMining() {
                                                 difficulty
                                             });
                                         });
-                                        blockFound = false;
                                     })
                                     .catch(err => {
                                         console.log(err)
