@@ -28,7 +28,16 @@ class Traverse {
         return Object.keys(this.graph).length;
     }
 
-    bfs() {
+    checkArgs(node,vertex){
+        if (vertex === node){
+            return true
+        } else {
+            return this.getUnvisitedNeighbors(vertex).length > 0
+        }
+    }
+
+
+    bfs(node=null) {
         const queue = []
         queue.push([this.currentRoom])
         const found = []
@@ -36,7 +45,7 @@ class Traverse {
             const path = queue.shift();
             const vertex = path[path.length - 1];
             if (!found.includes(vertex)) {
-                if (this.getUnvisitedNeighbors(vertex).length > 0) {
+                if (this.checkArgs(node,vertex)) {
                     return path.slice(1);
                 } else {
                     found.push(vertex);
@@ -88,7 +97,7 @@ class Traverse {
     //Can be multiple rooms
     moveBack(path) {        
         if (path.length === 0) {
-            return;
+            return Promise.resolve();
         } else {
             console.log("moving back along this path:", path)
             const nextRoomId = path.shift();
@@ -165,8 +174,39 @@ class Traverse {
         return unvisited
     }
 
+    findRoomByTitle(title){
+        let roomNumber = null
+        for (let i in this.rawGraph){
+            if(this.rawGraph[i]['title'] === title){
+                roomNumber = i
+                return roomNumber
+            }
+        }
+        
+    }
+
+    changeName(){
+         const roomID = this.findRoomByTitle("Pirate Ry's")
+         const path = this.bfs(parseInt(roomID))
+         if (path === null){
+            throw new Error("Error in path")
+         } 
+        
+        return this.moveBack(path)
+        .then( () => {
+            if (this.currentRoom.toString() === roomID){
+                return this.currentRoom
+            } else {
+                throw new Error("Error in change name")
+            }
+            
+        })
+        .catch(printErrors)
+    }
+
     inspectRoom(roomData) {
         if(roomData.title.toLowerCase().includes("shop")) {
+            console.log(this.shops,typeof this.shops)
             this.shops.add(roomData.room_id);
             console.log("Shop Found At Room #", roomData.room_id)
         }
@@ -296,12 +336,72 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
     }
 }
 
+function getGraphDB(){
+    return axios.getGraph()
+        .then(res => {
+            return res.data
+        })
+        .catch(printErrors)
+}
+
+function initExplore(){
+    let currentRoomId;
+    let traveler
+    //Get our current room from Lambda API
+    return axios.init()
+        .then(res => {
+            //Save currentRoomId for later
+            currentRoomId = res.data.room_id
+            //Initialize Graph
+            return startCheck(res.data)
+        })
+        .then(res => {
+            console.log(res, "<- Graph; Starting traversal...")
+            //Start traversing the graph!
+            traveler = new Traverse(currentRoomId, res)
+            return traveler.traverse()
+        })
+        .then(getGraphDB)
+        .then(res => ({"rawGraph":res,traveler}))
+        .catch(printErrors)
+}
+
+function requestName(){
+
+}
+
+function changeName(){
+    // lambda init for room
+    // parse response
+    // get room number
+    // traverse
+    // traverse returns graph
+    // get raw graph from the db
+    // check if graph returned is the same graph has the same length
+    // if it does, run function
+    // else, throw error
+    return initExplore()
+    .then( res => {
+        res.traveler.rawGraph = parseRawGraph(res.rawGraph)
+        return res.traveler.changeName()
+    })
+    .catch(printErrors)
+}
 
 
 function printErrors(error) {
     throw error
 }
 
+function parseRawGraph(arr){
+    const graph = {}
+    for (let i of arr) {
+        const key = i['room_id']
+        graph[key] = {'title':i['title'],'description':i['description']}
+    }
+    // console.log(graph)
+    return graph
+}
 
 function parseGraph(arr) {
     const graph = {}
@@ -360,4 +460,4 @@ function parseRoomData(room) {
     return request
 }
 
-module.exports = traversal
+module.exports = {traversal,changeName}
