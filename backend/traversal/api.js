@@ -6,6 +6,7 @@ class Traverse {
         this.currentRoom = room;
         this.stack = [];
         this.visited = new Set();
+        this.directions = new Set(["n","s","e","w"])
     }
 
     get graph() {
@@ -21,19 +22,19 @@ class Traverse {
         return Object.keys(this.graph).length;
     }
 
-    getShortestPath(unvisited, parentTree) {
-        const shortest_path = [];
-        let parent = parentTree[unvisited];
-        shortest_path.push(unvisited);
-        shortest_path.push(parent);
-        // will stop at null value
-        while (parentTree[parent]) {
-            parent = parentTree[parent];
-            shortest_path.push(parent);
-        }
-        shortest_path.reverse()
-        return shortest_path
-    }
+    // getShortestPath(unvisited, parentTree) {
+    //     const shortest_path = [];
+    //     let parent = parentTree[unvisited];
+    //     shortest_path.push(unvisited);
+    //     shortest_path.push(parent);
+    //     // will stop at null value
+    //     while (parentTree[parent]) {
+    //         parent = parentTree[parent];
+    //         shortest_path.push(parent);
+    //     }
+    //     shortest_path.reverse()
+    //     return shortest_path
+    // }
 
     breadthFirst() {
         const queue = [];
@@ -59,42 +60,9 @@ class Traverse {
         return null;
     }
 
-    // bfs() {
-    //     let vertex = this.currentRoom;
-    //     const q = [vertex];
-    //     const parentTree = {
-    //         [vertex]: null
-    //     };
-    //     const visited = new Set();
-
-    //     while (visited.size < this.graphLen) {
-    //         vertex = q.shift()
-    //         visited.add(vertex)
-    //         const neighbors = this.graph[vertex]
-    //         console.log(parentTree)
-    //         console.log("neigh", neighbors)
-    //         //For each neighboring room
-    //         for (const neighbor in neighbors) {
-    //             //If the room ID is null
-    //             //Then it is unvisited
-    //             if (neighbor === null) {
-    //                 parentTree[vertex] = neighbor;
-    //                 // console.log(vertex, "vertex has an unvisited direction", parentTree)
-    //                 const shortestPath = this.getShortestPath(vertex, parentTree)
-    //                 break
-    //             } else {
-    //                 //Else the neighbor has already been visited
-    //                 q.push(neighbors)
-    //                 parentTree[neighbor] = vertex
-    //             }
-    //         }
-    //     }
-
-    //     return shortestPath;
-    // }
 
     randomInt(max) {
-        return Math.floor(Math.random() * Math.floor(max))
+        return Math.floor(Math.random() * Math.floor(max));
     }
 
     //Move once in a certain direction
@@ -139,30 +107,30 @@ class Traverse {
                     break;
                 }
             }
-            // console.log("moving back- headed", direction)
-            return axios.move(direction)
-                .then((res) => {
-                    this.currentRoom = res.data.room_id;
-                    return this.moveBack(path);
-                })
-                .catch(printErrors);
+
+            return axios.wiseExplorer(direction,nextRoomId.toString())
+            .then((res) => {
+                this.currentRoom = res.data.room_id;
+                return this.moveBack(path);
+            })
+            .catch(printErrors)
         }
     }
 
-    //Receives previous room ID and current room ID
-    dirLookUp(from, to) {
-        const from_room = from.toString()
-        const to_room = to.toString()
-        const directions = this.graph[from_room]
-        console.log(directions, "inside dirLookup")
 
-        for (let i in directions) {
-            if (directions[i] !== null && directions[i].toString() === to_room) {
-                return directions[i]
-            }
-        }
-        throw new Error("An error has occured in dirlookup")
-    }
+    // dirLookUp(from, to) {
+    //     const from_room = from.toString()
+    //     const to_room = to.toString()
+    //     const directions = this.graph[from_room]
+    //     console.log(directions, "inside dirLookup")
+
+    //     for (let i in directions) {
+    //         if (directions[i] !== null && directions[i].toString() === to_room) {
+    //             return directions[i]
+    //         }
+    //     }
+    //     throw new Error("An error has occured in dirlookup")
+    // }
 
     //Main Graph Traversal Method
     traverse() {
@@ -215,7 +183,7 @@ class Traverse {
         const unvisited = []
         for (let i in directions) {
             // console.log(!directions[i], !this.visited.has(directions[i]), "unvisited logic")
-            if (!directions[i] && !this.visited.has(directions[i])) {
+            if (directions[i] === null  && !this.visited.has(directions[i])) {
                 unvisited.push(i)
             }
         }
@@ -271,35 +239,6 @@ function startCheck(room) {
         .catch(printErrors)
 }
 
-
-function reloadGraph() {
-    Promise.all([getCurrentRoom(), getGraph()])
-        .then(res => {
-            // console.log(res, "res from reload graph")
-            throw new Error("testing reload graph")
-            const currentRoom = res[0]["room_id"]
-            return [currentRoom, res[1]]
-        })
-        .catch(printErrors)
-
-}
-
-function getCurrentRoom() {
-    return axios.init()
-        .then(res => {
-            return res.data
-        })
-        .catch(printErrors)
-}
-
-function getGraph() {
-    return axios.getGraph()
-        .then(res => {
-            const graph = parseGraph(res.data)
-            return graph
-        }).catch(printErrors)
-}
-
 //Add a room to the backend database
 //There are three different possibilities:
 
@@ -328,10 +267,7 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
                 // console.log("hit", res.data)
                 return parseGraph(res.data)
             })
-            .catch((err) => {
-                // console.log(Object.keys(err), "add room error")
-                return reloadGraph()
-            });
+            .catch(printErrors);
     } else {
         // console.log("adding room after move")
         return axios.addRoom({
@@ -372,6 +308,8 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
             });
     }
 }
+
+
 
 function printErrors(error) {
     // console.log(error)
