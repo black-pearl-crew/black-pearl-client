@@ -66,7 +66,7 @@ class Traverse {
                     console.log(data)
                     console.log("Backpack full- Return to shop")
                     const pathToShop = this.bfs(1);
-                    this.moveBack(pathToShop)
+                    return this.moveBack(pathToShop)
                         .then(() => {
                             return Promise.all(data.inventory.map(item =>
                                 axios.sell(item)))
