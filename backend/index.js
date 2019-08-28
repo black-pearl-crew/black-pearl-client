@@ -20,7 +20,8 @@ const roomsRouter = require('./routers/rooms');
 server.use('/rooms', roomsRouter);
 
 //Traversal- For testing purposes
-const {traversal,changeName} = require("./traversal/api");
-changeName()
+const traversalApi = require("./traversal/api");
+// traversalApi.traversal();
+// traversalApi.collectTreasure();
 
 server.listen(port, () => console.log(`\u{1F680}\u{1F680}\u{1F680} http://localhost:${port}/ \u{1F680}\u{1F680}\u{1F680}`));
