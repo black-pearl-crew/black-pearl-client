@@ -50,9 +50,10 @@ function startMining() {
 
                 // Receive messages from this worker and handle them in the master process.
                 worker.on('message', function (msg) {
+                    console.log(msg)
                     switch (msg.type) {
                         case 'block-found':
-                            console.log(`typeof nonce: ${typeof msg.proof} Value of nonce: ${msg.proof}`)
+                            console.log("switch case found")
                             //Submit Proof
                             if (!blockFound) {
                                 blockFound = true;
