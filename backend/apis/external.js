@@ -3,12 +3,15 @@ const backendAxios = require('../util/backendAxios');
 
 module.exports = {
     status,
-    pickup,
+    take,
     drop,
+    examine,
+    wear,
     sell,
     transmogrify,
     init,
     move,
+    changeName,
     wiseExplorer,
     addRoom,
     updateRoom,
@@ -25,12 +28,24 @@ function status() {
     return lambdaAxios.post(`${process.env.LAMBDA}/adv/status/`);
 }
 
-function pickup(name) {
-    return lambdaAxios.post(`${process.env.LAMBDA}/adv/pickup/`, {
+function take(name) {
+    return lambdaAxios.post(`${process.env.LAMBDA}/adv/take/`, {
         name
     });
 }
 
+function examine(name) {
+    return lambdaAxios.post(`${process.env.LAMBDA}/adv/examine/`, {
+        name
+    });
+}
+
+function wear(name) {
+    return lambdaAxios.post(`${process.env.LAMBDA}/adv/wear/`, {
+        name
+    });
+}
+    
 function drop(name) {
     return lambdaAxios.post(`${process.env.LAMBDA}/adv/drop/`, {
         name
@@ -58,6 +73,13 @@ function move(direction) {
         direction
     });
 }
+
+function changeName(name) {
+    return lambdaAxios.post(`${process.env.LAMBDA}/adv/change_name/`, {
+        name
+    });
+}
+
 
 // An accurate map is the wise explorer's best friend.
 // By predicting the ID of the destination room,

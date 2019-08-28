@@ -6,13 +6,6 @@ class Traverse {
         this.currentRoom = room;
         this.stack = [];
         this.visited = new Set();
-
-        this.shops = new Set();
-        this.transmogrifiers = new Set();
-        this.shrines = new Set();
-        this.items = new Set();
-        this.terrains = new Set();
-        this.elevations = new Set();
     }
 
     get graph() {
@@ -28,7 +21,15 @@ class Traverse {
         return Object.keys(this.graph).length;
     }
 
-    bfs() {
+
+    bfs(node = null) {
+        const checkArgs = (node, vertex) => {
+            if (vertex === node) {
+                return true;
+            } else {
+                return this.getUnvisitedNeighbors(vertex).length > 0;
+            }
+        }
         const queue = []
         queue.push([this.currentRoom])
         const found = []
@@ -36,7 +37,7 @@ class Traverse {
             const path = queue.shift();
             const vertex = path[path.length - 1];
             if (!found.includes(vertex)) {
-                if (this.getUnvisitedNeighbors(vertex).length > 0) {
+                if (this.checkArgs(node, vertex)) {
                     return path.slice(1);
                 } else {
                     found.push(vertex);
@@ -55,30 +56,107 @@ class Traverse {
         return Math.floor(Math.random() * Math.floor(max));
     }
 
+    encumbranceCheck() {
+        return axios.status()
+            .then(({
+                data
+            }) => {
+                console.log(data)
+                if (data.encumbrance === data.strength) {
+                    console.log(data)
+                    console.log("Backpack full- Return to shop")
+                    const pathToShop = this.bfs(1);
+                    this.moveBack(pathToShop)
+                        .then(() => {
+                            return Promise.all(data.inventory.map(item =>
+                                axios.sell(item)))
+                        })
+                        .then(() => {
+                            return this.collectTreasure()
+                        })
+                } else {
+                    console.log("Collecting treasure...")
+                    return this.collectTreasure()
+                }
+            })
+            .catch(printErrors);
+    }
+
+    collectTreasure(roomData = null) {
+        console.log("Collecting treasure... \u{1F4B0}\u{1F4B0}\u{1F4B0}\u{1F4B0}")
+
+        const checkRoomData = (items, roomId) => {
+            if (items.length > 0) {
+                if (items.includes("shiny treasure")) {
+                    return this.take("shiny treasure");
+                } else if (items.includes("small treasure")) {
+                    return this.take("small treasure");
+                } else if (items.includes("tiny treasure")) {
+                    return this.take("tiny treasure");
+                } else {
+                    console.log("\n\n\n\n\n\n\nUnidentified Object Located In Room #", roomId);
+                    console.log("Items:", items);
+                    return;
+                }
+            } else {
+                return this.wiseMove()
+            }
+        }
+
+        if (!roomData) {
+            return axios.init()
+                .then(({
+                    data
+                }) => {
+                    return checkRoomData(data.items, data.room_id);
+                });
+        } else {
+            return checkRoomData(roomData.items, roomData.room_id);
+        }
+    }
+
+    take(item) {
+        console.log("picking up \u{1F53A}\u{1F53A}", item)
+        return axios.take(item)
+            .then(() => {
+                return this.encumbranceCheck()
+            })
+    }
+
+    wiseMove() {
+        const neighbors = this.graph[this.currentRoom];
+        var keys = Object.keys(neighbors);
+        const randDirection = keys[keys.length * Math.random() << 0];
+        const nextRoomId = neighbors[randDirection];
+        // console.log(randDirection,nextRoomId)
+        console.log("wiseMove While Collecting... \u{1F63B}, nextRoomId", nextRoomId)
+        return axios.wiseExplorer(randDirection, nextRoomId.toString())
+            .then(res => {
+                this.currentRoom = res.data.room_id;
+                // console.log(res.data, "collecting with room data")
+                return this.collectTreasure(res.data);
+            });
+    }
 
     //Move once in a certain direction
     //And update the graph
     move(direction, previousRoomId) {
         axios.move(direction)
             .then(res => {
-                this.inspectRoom(res.data);
                 // check if room exists in current cache or if connection is not present
                 return addRoom(res.data, previousRoomId, direction);
             })
             .then(res => {
                 this.graph = res;
                 this.currentRoom = this.graph[previousRoomId][direction];
-
-                // console.log(res, "<- new graph", "in room ->", this.currentRoom);
-                console.log("entered room", this.currentRoom, "from", previousRoomId)
-                if(this.currentRoom % 50 === 0) {
-                    console.log('Found Map Locations:')
-                    console.log("this.shops",this.shops)
-                    console.log("this.transmogrifiers",this.transmogrifiers)
-                    console.log("this.shrines", this.shrines);
-                    console.log("this.items", this.items);
-                    console.log("this.terrains",this.terrains);
+                if (this.currentRoom === null) {
+                    console.log("\nBUGG")
+                    console.log("this.graph", this.graph)
+                    console.log("previousRoomId", previousRoomId)
+                    console.log("direction", direction)
                 }
+                // console.log(res, "<- new graph", "in room ->", this.currentRoom);
+                console.log("entered room", this.currentRoom, "from", previousRoomId);
                 this.traverse();
             })
             .catch(printErrors);
@@ -86,7 +164,7 @@ class Traverse {
 
     //Move in a certain path by room ID
     //Can be multiple rooms
-    moveBack(path) {        
+    moveBack(path) {
         if (path.length === 0) {
             return;
         } else {
@@ -101,12 +179,12 @@ class Traverse {
                 }
             }
 
-            return axios.wiseExplorer(direction,nextRoomId.toString())
-            .then((res) => {
-                this.currentRoom = res.data.room_id;
-                return this.moveBack(path);
-            })
-            .catch(printErrors)
+            return axios.wiseExplorer(direction, nextRoomId.toString())
+                .then((res) => {
+                    this.currentRoom = res.data.room_id;
+                    return this.moveBack(path);
+                })
+                .catch(printErrors)
         }
     }
 
@@ -128,16 +206,16 @@ class Traverse {
 
             // If there are no unvisited rooms
             // traversal is done
-            if(!shortestPath) {
+            if (!shortestPath) {
                 return this.graph
             }
-            
+
             // Move back to first unvisited room
             return this.moveBack(shortestPath)
-            .then(() => {
-                return this.traverse()
-            })
-            
+                .then(() => {
+                    return this.traverse()
+                })
+
         } else {
             // console.log("no rooms in stack left to traverse")
 
@@ -164,27 +242,6 @@ class Traverse {
         }
         return unvisited
     }
-
-    inspectRoom(roomData) {
-        if(roomData.title.toLowerCase().includes("shop")) {
-            this.shops.add(roomData.room_id);
-            console.log("Shop Found At Room #", roomData.room_id)
-        }
-        if(roomData.title.toLowerCase().includes("shrine")) {
-            this.shrine.add(roomData.room_id);
-            console.log("Shrine Found At Room #", roomData.room_id)
-        }
-        if(roomData.title.toLowerCase().includes("transmogriphier")) {
-            this.transmogrifiers.add(roomData.room_id);
-            console.log("Transmogrifier Found At Room #", roomData.room_id)
-        }
-        this.terrains.add(roomData.terrain)
-        this.elevations.add(roomData.elevation)
-        roomData.items.forEach(item => {
-            this.items.add(item)
-        });
-    }
-
 }
 
 //Start traversal
@@ -203,6 +260,26 @@ function traversal() {
             //Start traversing the graph!
             const traveler = new Traverse(currentRoomId, res)
             return traveler.traverse()
+        })
+        .catch(printErrors)
+}
+
+//Collect Treasure
+function collectTreasure() {
+    let currentRoomId;
+    //Get our current room from Lambda API
+    axios.init()
+        .then(res => {
+            //Save currentRoomId for later
+            currentRoomId = res.data.room_id
+            //Initialize Graph
+            return startCheck(res.data)
+        })
+        .then(res => {
+            // Start traversing the graph!
+            // And collecting treasure!
+            const traveler = new Traverse(currentRoomId, res);
+            return traveler.encumbranceCheck();
         })
         .catch(printErrors)
 }
@@ -261,9 +338,9 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
             .catch(printErrors);
     } else {
         return axios.addRoom({
-            ...newRoom,
-            ["room_" + oppositeDirection[directionMoved]]: previousRoomId
-        })
+                ...newRoom,
+                ["room_" + oppositeDirection[directionMoved]]: previousRoomId
+            })
             .then(() => {
 
                 // Everything between here and catch() occurs
@@ -296,12 +373,9 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
     }
 }
 
-
-
 function printErrors(error) {
     throw error
 }
-
 
 function parseGraph(arr) {
     const graph = {}
@@ -357,7 +431,18 @@ function parseRoomData(room) {
         }
     }
 
-    return request
+    return request;
 }
 
-module.exports = traversal
+module.exports = {
+    traversal,
+    collectTreasure
+}
+
+
+// shops = 1
+// transmogrifiers = 495
+// name changer = 497
+// shrines = 461
+// items [ 'tiny treasure', 'small treasure', 'shiny treasure' ]
+// terrains [ 'NORMAL', 'MOUNTAIN' ]
