@@ -30,7 +30,7 @@ function stopMining() {
     workers.forEach(worker => {
         worker.kill();
     });
-    console.log("\u{1F387}\u{1F387}\u{1F387} All Workers Terminated \u{1F387}\u{1F387}\u{1F387}") 
+    console.log("\u{1F387}\u{1F387}\u{1F387} All Workers Terminated \u{1F387}\u{1F387}\u{1F387}")
 }
 
 function startMining() {
@@ -50,16 +50,21 @@ function startMining() {
 
                 // Receive messages from this worker and handle them in the master process.
                 worker.on('message', function (msg) {
+                    console.log(msg)
                     switch (msg.type) {
                         case 'block-found':
-                            // console.log(`A new block was found by Worker ${this.process.pid}`)
+                            console.log("switch case found")
                             //Submit Proof
                             if (!blockFound) {
                                 blockFound = true;
                                 submitProof(msg.proof)
                                     .then(res => {
-                                        console.log('Proof Submitted');
-                                        console.log(res.data);
+                                        console.log(`Proof Submitted Successfully \u{1F535}\u{1F535}\u{1F535}`);
+                                        if (res.data.messages[0].includes('New Block Forged')) {
+                                            console.log('New Block Forged \u{1F973}\u{1F973}\u{1F973}\u{1F973}')
+                                        } else {
+                                            console.log(`${res.data.messages[0]} SAD! \u{1F92A}\u{1F92A}\u{1F92A}`)
+                                        }
                                         // Get last proof and make sure difficulty has not changed
                                         return lastProof();
                                     })
@@ -69,23 +74,22 @@ function startMining() {
                                         console.log("Updating Workers");
                                         proof = data.proof;
                                         difficulty = data.difficulty;
+                                        blockFound = false;
                                         // Update workers of the last proof and new difficulty
                                         workers.forEach(worker => {
-                                            if (!worker.isDead())
-                                                worker.send({
-                                                    type: 'block-found',
-                                                    proof,
-                                                    difficulty
-                                                });
+                                            worker.send({
+                                                type: 'block-found',
+                                                proof,
+                                                difficulty
+                                            });
                                         });
-                                        blockFound = false;
                                     })
                                     .catch(err => {
                                         console.log(err)
                                     });
                             }
-                        default:
-                            break;
+                            default:
+                                break;
                     }
                 });
 
@@ -96,37 +100,36 @@ function startMining() {
                     proof: proof,
                     difficulty: difficulty
                 });
-
-                // Check every 1.5 minutes if there's a new block
-                setInterval(() => {
-                    lastProof()
-                        .then(({
-                            data
-                        }) => {
-                            newProof = data.proof;
-                            newDifficulty = data.difficulty;
-
-                            // If the difficulty or last proof changed
-                            // Then update workers of the last proof and new difficulty
-                            if (difficulty !== newDifficulty) {
-                                console.log("Updating Workers...");
-                                proof = newProof;
-                                difficulty = newDifficulty;
-                                workers.forEach(worker => {
-                                    if (!worker.isDead())
-                                        worker.send({
-                                            type: 'block-found',
-                                            proof,
-                                            difficulty
-                                        });
-                                });
-                            }
-                        })
-                        .catch(err => {
-                            console.log(err)
-                        });
-                }, 90000);
             }
+
+            // Check every 1.5 minutes if there's a new block
+            setInterval(() => {
+                lastProof()
+                    .then(({
+                        data
+                    }) => {
+                        newProof = data.proof;
+                        newDifficulty = data.difficulty;
+
+                        // If the difficulty or last proof changed
+                        // Then update workers of the last proof and new difficulty
+                        if (difficulty !== newDifficulty) {
+                            console.log("Updating Workers...");
+                            proof = newProof;
+                            difficulty = newDifficulty;
+                            workers.forEach(worker => {
+                                worker.send({
+                                    type: 'block-found',
+                                    proof,
+                                    difficulty
+                                });
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        console.log(err)
+                    });
+            }, 120000);
         })
         .catch(err => {
             console.log(err)
