@@ -6,13 +6,7 @@ class Traverse {
         this.currentRoom = room;
         this.stack = [];
         this.visited = new Set();
-
-        this.shops = new Set();
-        this.transmogrifiers = new Set();
-        this.shrines = new Set();
-        this.items = new Set();
-        this.terrains = new Set();
-        this.elevations = new Set();
+        this.roomsCollected = new Set();
     }
 
     get graph() {
@@ -28,7 +22,22 @@ class Traverse {
         return Object.keys(this.graph).length;
     }
 
-    bfs() {
+
+    checkArgs(type,node,vertex) {
+        switch(type) {
+            case "lastUnvisited":
+                return this.getUnvisitedNeighbors(vertex).length > 0;
+            case "closestUncollected":
+                return !this.roomsCollected.has(vertex);
+            case "roomId":
+                if (vertex === node) {
+                    return true;
+                }
+                return false;
+        }
+    }
+
+    bfs(type,node=null) {
         const queue = []
         queue.push([this.currentRoom])
         const found = []
@@ -36,7 +45,7 @@ class Traverse {
             const path = queue.shift();
             const vertex = path[path.length - 1];
             if (!found.includes(vertex)) {
-                if (this.getUnvisitedNeighbors(vertex).length > 0) {
+                if (this.checkArgs(type,node,vertex)) {
                     return path.slice(1);
                 } else {
                     found.push(vertex);
@@ -55,30 +64,103 @@ class Traverse {
         return Math.floor(Math.random() * Math.floor(max));
     }
 
+    encumbranceCheck() {
+        return axios.status()
+            .then(({
+                data
+            }) => {
+                if (data.encumbrance === data.strength) {
+                    console.log(data)
+                    console.log("Backpack full- Return to shop")
+                    const pathToShop = this.bfs("roomId", 1);
+                    this.roomsCollected.clear()
+                    return this.moveBack(pathToShop)
+                        .then(() => {
+                            return Promise.all(data.inventory.map(item =>
+                                axios.sell(item).then(axios.sell(item,true))))
+                        })
+                        .then(() => {
+                            console.log("\u{1F911}\u{1F911}\u{1F911} Items Sold- You A Rich! \u{1F911}\u{1F911}\u{1F911}")
+                            return this.collectTreasure()
+                        });
+                } else {
+                    console.log("Collecting treasure...")
+                    return this.collectTreasure()
+                }
+            })
+            .catch(printErrors);
+    }
+
+    collectTreasure(roomData = null) {
+        console.log("Collecting treasure... \u{1F4B0}\u{1F4B0}\u{1F4B0}\u{1F4B0}")
+
+        const checkRoomData = (items, roomId) => {
+            this.roomsCollected.add(roomId);
+            if (items.length > 0) {
+                if (items.includes("shiny treasure")) {
+                    return this.take("shiny treasure");
+                } else if (items.includes("small treasure")) {
+                    return this.take("small treasure");
+                } else if (items.includes("tiny treasure")) {
+                    return this.take("tiny treasure");
+                } else {
+                    console.log("\n\n\n\n\n\n\nUnidentified Object Located In Room #", roomId);
+                    console.log("Items:", items);
+                    return;
+                }
+            } else {
+                return this.goToClosestUncollected()
+            }
+        }
+
+        if (!roomData) {
+            return axios.init()
+                .then(({
+                    data
+                }) => {
+                    return checkRoomData(data.items, data.room_id);
+                });
+        } else {
+            return checkRoomData(roomData.items, roomData.room_id);
+        }
+    }
+
+    take(item) {
+        console.log("picking up \u{1F53A}\u{1F53A}", item)
+        return axios.take(item)
+            .then(() => {
+                return this.encumbranceCheck()
+            })
+    }
+
+    goToClosestUncollected() {
+        console.log("going to closest uncollected room....")
+        const pathToRoom = this.bfs("closestUncollected");
+        return this.moveBack(pathToRoom)
+            .then(() => {
+                return this.collectTreasure()
+            })
+    }
 
     //Move once in a certain direction
     //And update the graph
     move(direction, previousRoomId) {
         axios.move(direction)
             .then(res => {
-                this.inspectRoom(res.data);
                 // check if room exists in current cache or if connection is not present
                 return addRoom(res.data, previousRoomId, direction);
             })
             .then(res => {
                 this.graph = res;
                 this.currentRoom = this.graph[previousRoomId][direction];
-
-                // console.log(res, "<- new graph", "in room ->", this.currentRoom);
-                console.log("entered room", this.currentRoom, "from", previousRoomId)
-                if(this.currentRoom % 50 === 0) {
-                    console.log('Found Map Locations:')
-                    console.log("this.shops",this.shops)
-                    console.log("this.transmogrifiers",this.transmogrifiers)
-                    console.log("this.shrines", this.shrines);
-                    console.log("this.items", this.items);
-                    console.log("this.terrains",this.terrains);
+                if (this.currentRoom === null) {
+                    console.log("\nBUGG")
+                    // console.log("this.graph", this.graph)
+                    console.log("previousRoomId", previousRoomId)
+                    console.log("direction", direction)
                 }
+                // console.log(res, "<- new graph", "in room ->", this.currentRoom);
+                console.log("entered room", this.currentRoom, "from", previousRoomId);
                 this.traverse();
             })
             .catch(printErrors);
@@ -86,9 +168,9 @@ class Traverse {
 
     //Move in a certain path by room ID
     //Can be multiple rooms
-    moveBack(path) {        
+    moveBack(path) {
         if (path.length === 0) {
-            return;
+            return Promise.resolve()
         } else {
             console.log("moving back along this path:", path)
             const nextRoomId = path.shift();
@@ -101,12 +183,12 @@ class Traverse {
                 }
             }
 
-            return axios.wiseExplorer(direction,nextRoomId.toString())
-            .then((res) => {
-                this.currentRoom = res.data.room_id;
-                return this.moveBack(path);
-            })
-            .catch(printErrors)
+            return axios.wiseExplorer(direction, nextRoomId.toString())
+                .then((res) => {
+                    this.currentRoom = res.data.room_id;
+                    return this.moveBack(path);
+                })
+                .catch(printErrors)
         }
     }
 
@@ -124,20 +206,20 @@ class Traverse {
             //Pop current room off stack, don't need any more traversing
             this.currentRoom = this.stack.pop()
             //returns the shortest path back to the last unvisited room
-            const shortestPath = this.bfs()
+            const shortestPath = this.bfs("lastUnvisited")
 
             // If there are no unvisited rooms
             // traversal is done
-            if(!shortestPath) {
+            if (!shortestPath) {
                 return this.graph
             }
-            
+
             // Move back to first unvisited room
             return this.moveBack(shortestPath)
-            .then(() => {
-                return this.traverse()
-            })
-            
+                .then(() => {
+                    return this.traverse()
+                })
+
         } else {
             // console.log("no rooms in stack left to traverse")
 
@@ -165,8 +247,89 @@ class Traverse {
         return unvisited
     }
 
+    findRoomByTitle(title){
+        let roomNumber = null
+        for (let i in this.rawGraph){
+            if(this.rawGraph[i]['title'] === title){
+                roomNumber = i
+                return roomNumber
+            }
+        }
+        
+    }
+
+    goToClosest() {
+        console.log("going to closest uncollected room....")
+        const pathToRoom = this.bfs("closestUncollected");
+        return this.moveBack(pathToRoom)
+            .then(() => {
+                return this.wanderToMine()
+            })
+    }
+
+    wanderToMine(){
+        if(this.roomsCollected.size < this.graphLen){
+            this.roomsCollected.add(this.currentRoom)
+            wanderMine()
+            .then(res => {
+                if(res['errors'].length >0){
+                    console.log(res['errors'])
+                } else {
+                    console.log(res)
+                    console.log('Found a place to mine!!!')
+                }
+                return this.goToClosest()
+            })
+            .catch(printErrors)
+
+        } else {
+            console.log("no more rooms")
+            return Promise.resolve()
+        }
+        
+    }
+
+    findMine(){
+        return this.goToPoint("Mt. Holloway")
+        .then(res => {
+            console.log(res)
+            return this.rawGraph[this.currentRoom]
+        })
+        .catch()
+    }
+
+    findShrine(temple){
+        return this.goToPoint(temple)
+        .then(res => {
+            console.log(res)
+            return this.rawGraph[this.currentRoom]
+        })
+        .catch(printErrors)
+    }
+
+    goToPoint(room_title){
+         const roomID = this.findRoomByTitle(room_title)
+         const path = this.bfs("roomId",parseInt(roomID))
+         if (path === null){
+            throw new Error("Error in path")
+         } 
+        
+        return this.moveBack(path)
+        .then( () => {
+            if (this.currentRoom.toString() === roomID){
+                return this.currentRoom
+            } else {
+                console.log(roomID,this.currentRoom.toString())
+                throw new Error("Error in go to point")
+            }
+            
+        })
+        .catch(printErrors)
+    }
+
     inspectRoom(roomData) {
         if(roomData.title.toLowerCase().includes("shop")) {
+            console.log(this.shops,typeof this.shops)
             this.shops.add(roomData.room_id);
             console.log("Shop Found At Room #", roomData.room_id)
         }
@@ -203,6 +366,26 @@ function traversal() {
             //Start traversing the graph!
             const traveler = new Traverse(currentRoomId, res)
             return traveler.traverse()
+        })
+        .catch(printErrors)
+}
+
+//Collect Treasure
+function collectTreasure() {
+    let currentRoomId;
+    //Get our current room from Lambda API
+    axios.init()
+        .then(res => {
+            //Save currentRoomId for later
+            currentRoomId = res.data.room_id
+            //Initialize Graph
+            return startCheck(res.data)
+        })
+        .then(res => {
+            // Start traversing the graph!
+            // And collecting treasure!
+            const traveler = new Traverse(currentRoomId, res);
+            return traveler.encumbranceCheck();
         })
         .catch(printErrors)
 }
@@ -261,9 +444,9 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
             .catch(printErrors);
     } else {
         return axios.addRoom({
-            ...newRoom,
-            ["room_" + oppositeDirection[directionMoved]]: previousRoomId
-        })
+                ...newRoom,
+                ["room_" + oppositeDirection[directionMoved]]: previousRoomId
+            })
             .then(() => {
 
                 // Everything between here and catch() occurs
@@ -296,12 +479,121 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
     }
 }
 
+function getGraphDB(){
+    return axios.getGraph()
+        .then(res => {
+            return res.data
+        })
+        .catch(printErrors)
+}
+
+function initExplore(){
+    let currentRoomId;
+    let traveler
+    //Get our current room from Lambda API
+    return axios.init()
+        .then(res => {
+            //Save currentRoomId for later
+            currentRoomId = res.data.room_id
+            //Initialize Graph
+            return startCheck(res.data)
+        })
+        .then(res => {
+            console.log(res, "<- Graph; Starting traversal...")
+            //Start traversing the graph!
+            traveler = new Traverse(currentRoomId, res)
+            return traveler.traverse()
+        })
+        .then(getGraphDB)
+        .then(res => ({"rawGraph":res,traveler}))
+        .catch(printErrors)
+}
+
+function requestName(name){
+    return axios.changeName(name)
+    .then(res => {
+        return res.data
+    })
+    .catch(printErrors)
+}
+
+function pray(){
+    return axios.pray()
+    .then(res => {
+        return res.data
+    })
+    .catch(printErrors)
+}
+
+function prayAtShrine(temple){
+    return initExplore()
+    .then( res => {
+        res.traveler.rawGraph = parseRawGraph(res.rawGraph)
+        return res.traveler.findShrine(temple)
+    })
+    .then(res => {
+        console.log(res,"\nFound a place to pray")
+        return pray()
+    })
+    .then(res => {
+        console.log(res,"from pray at shrine")
+        return res.data
+    })
+    .catch(printErrors)
+}
+
+function wanderMine(){
+    return axios.submitProof([1])
+    .then(res => {
+        console.log(res.data)
+        return res.data
+    })
+    .catch(printErrors)
+}
+
+function findMine(){
+    return initExplore()
+    .then( res => {
+        res.traveler.rawGraph = parseRawGraph(res.rawGraph)
+        return res.traveler.wanderToMine()
+        // return res.traveler.findMine()
+    })
+    .then(res => {
+        console.log(res,"\nFound a place to mine")
+        return res
+    })
+    .catch(printErrors)
+}
+
+function changeName(name){
+    return initExplore()
+    .then( res => {
+        res.traveler.rawGraph = parseRawGraph(res.rawGraph)
+        return res.traveler.goToPoint("Pirate Ry's")
+    })
+    .then(() => {
+        return requestName(name)
+    })
+    .then(res => {
+        console.log(res,"\nResponse from the Name Changer")
+        return res
+    })
+    .catch(printErrors)
+}
 
 
 function printErrors(error) {
     throw error
 }
 
+function parseRawGraph(arr){
+    const graph = {}
+    for (let i of arr) {
+        const key = i['room_id']
+        graph[key] = {'title':i['title'],'description':i['description']}
+    }
+    return graph
+}
 
 function parseGraph(arr) {
     const graph = {}
@@ -357,7 +649,21 @@ function parseRoomData(room) {
         }
     }
 
-    return request
+    return request;
 }
 
-module.exports = traversal
+module.exports = {
+    traversal,
+    collectTreasure,
+    changeName,
+    findMine,
+    prayAtShrine
+}
+
+
+// shops = 1
+// transmogrifiers = 495
+// name changer = 497
+// shrines = 461
+// items [ 'tiny treasure', 'small treasure', 'shiny treasure' ]
+// terrains [ 'NORMAL', 'MOUNTAIN' ]
