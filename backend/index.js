@@ -23,7 +23,7 @@ server.use('/rooms', roomsRouter);
 const traversalApi = require("./traversal/api");
 // traversalApi.traversal();
 // traversalApi.collectTreasure();
-// traversalApi.changeName("danimal");
+// traversalApi.changeName("cammac");
 traversalApi.findMine();
 // traversalApi.prayAtShrine("The Peak of Mt. Holloway")
 

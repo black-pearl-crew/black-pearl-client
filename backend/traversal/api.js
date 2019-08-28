@@ -40,10 +40,13 @@ class Traverse {
     bfs(type,node=null) {
         const queue = []
         queue.push([this.currentRoom])
+        // console.log("current room", this.currentRoom)
         const found = []
         while (queue.length > 0) {
             const path = queue.shift();
+            // console.log("bfs path", path)
             const vertex = path[path.length - 1];
+            // console.log("bfs vertex", vertex)
             if (!found.includes(vertex)) {
                 if (this.checkArgs(type,node,vertex)) {
                     return path.slice(1);
@@ -85,6 +88,8 @@ class Traverse {
                         });
                 } else {
                     console.log("Collecting treasure...")
+                    console.log(data)
+                    
                     return this.collectTreasure()
                 }
             })
@@ -136,6 +141,7 @@ class Traverse {
     goToClosestUncollected() {
         console.log("going to closest uncollected room....")
         const pathToRoom = this.bfs("closestUncollected");
+        // console.log("path", pathToRoom)
         return this.moveBack(pathToRoom)
             .then(() => {
                 return this.collectTreasure()
@@ -348,7 +354,6 @@ class Traverse {
             this.items.add(item)
         });
     }
-
 }
 
 
