@@ -16,7 +16,7 @@ mine();
 process.on('message', function (msg) {
     console.log(`[Worker# ${process.pid}] New Difficulty Received: ${msg.difficulty} \u{1F4D3}\u{1F4D3}\u{1F4D3}`);
     difficulty = msg.difficulty;
-    last_nonce = msg.proof;
+    last_nonce = msg.proof.toString();
     positive = Math.random() > .5 ? 1 : -1;
     increment = Math.random() > .5 ? 1 : -1;
     nonce = Math.ceil(Math.random() * 21474836 * Math.random() * positive);

@@ -297,7 +297,7 @@ class Traverse {
     }
 
     findMine(){
-        return this.goToPoint("Mt. Holloway")
+        return this.goToPoint("Shop")
         .then(res => {
             console.log(res)
             return this.rawGraph[this.currentRoom]
@@ -549,6 +549,31 @@ function prayAtShrine(temple){
     .catch(printErrors)
 }
 
+function mineCoinz(roomId) {
+    let currentRoomId;
+    //Get our current room from Lambda API
+    axios.init()
+        .then(res => {
+            //Save currentRoomId for later
+            currentRoomId = res.data.room_id
+            //Initialize Graph
+            return startCheck(res.data)
+        })
+        .then(res => {
+            // Start traversing the graph to the mine!
+            console.log("Traversing to mining location! \u{26CF}\u{26CF}")
+            const traveler = new Traverse(currentRoomId, res);
+            const path = traveler.bfs("roomId", roomId);
+            return traveler.moveBack(path);
+        })
+        .then(res => {
+            //Mine Coins
+            const miningApi = require('../apis/mining');
+            miningApi.startMining();
+        })
+        .catch(printErrors)
+}
+
 function wanderMine(){
     return axios.submitProof([1])
     .then(res => {
@@ -664,7 +689,8 @@ module.exports = {
     collectTreasure,
     changeName,
     findMine,
-    prayAtShrine
+    prayAtShrine,
+    mineCoinz
 }
 
 
