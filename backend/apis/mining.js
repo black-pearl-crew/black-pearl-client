@@ -56,6 +56,7 @@ function startMining() {
                             console.log("switch case found")
                             //Submit Proof
                             if (!blockFound) {
+                                console.log("Am I here?")
                                 blockFound = true;
                                 submitProof(msg.proof)
                                     .then(res => {
@@ -66,7 +67,13 @@ function startMining() {
                                             console.log(`${res.data.messages[0]} SAD! \u{1F92A}\u{1F92A}\u{1F92A}`)
                                         }
                                         // Get last proof and make sure difficulty has not changed
-                                        return lastProof();
+                                        getBalance()
+                                            .then(({
+                                                data
+                                            }) => {
+                                                console.log(data);
+                                                return lastProof();
+                                            })
                                     })
                                     .then(({
                                         data
