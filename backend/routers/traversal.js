@@ -27,7 +27,6 @@ router.post('/move', (req, res) => {
 });
 
 router.post('/wise-explorer', (req, res) => {
-    console.log("hhaa")
     externalApi.wiseExplorer(req.body.direction,req.body.nextRoomId)
     .then(response => {
         if (response.data.errors.length > 0)
