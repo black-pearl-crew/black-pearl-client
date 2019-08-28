@@ -2,3 +2,4 @@
 node_modules/
 .cooldown
 *.DS_Store/*
+.vscode

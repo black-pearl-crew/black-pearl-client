@@ -14,7 +14,7 @@
     "nodemon": "^1.19.1"
   },
   "scripts": {
-    "dev": "nodemon --use_strict index.js"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",

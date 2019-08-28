@@ -28,33 +28,15 @@ class Traverse {
         return Object.keys(this.graph).length;
     }
 
-    // getShortestPath(unvisited, parentTree) {
-    //     const shortest_path = [];
-    //     let parent = parentTree[unvisited];
-    //     shortest_path.push(unvisited);
-    //     shortest_path.push(parent);
-    //     // will stop at null value
-    //     while (parentTree[parent]) {
-    //         parent = parentTree[parent];
-    //         shortest_path.push(parent);
-    //     }
-    //     shortest_path.reverse()
-    //     return shortest_path
-    // }
-
-    breadthFirst() {
-        // console.log("Starting BreadthFirst From", this.currentRoom)
-        const queue = [];
-        queue.push([this.currentRoom]);
-        const found = [];
-
+    bfs() {
+        const queue = []
+        queue.push([this.currentRoom])
+        const found = []
         while (queue.length > 0) {
             const path = queue.shift();
             const vertex = path[path.length - 1];
-            // console.log("testing path: ", path)
             if (!found.includes(vertex)) {
                 if (this.getUnvisitedNeighbors(vertex).length > 0) {
-                    // console.log("unvisited neighbors at", vertex)
                     return path.slice(1);
                 } else {
                     found.push(vertex);
@@ -69,16 +51,14 @@ class Traverse {
         return null;
     }
 
-
     randomInt(max) {
         return Math.floor(Math.random() * Math.floor(max));
     }
 
+
     //Move once in a certain direction
     //And update the graph
     move(direction, previousRoomId) {
-        // console.log("currentRoom", this.currentRoom)
-        // console.log("moving", direction)
         axios.move(direction)
             .then(res => {
                 this.inspectRoom(res.data);
@@ -91,7 +71,6 @@ class Traverse {
 
                 // console.log(res, "<- new graph", "in room ->", this.currentRoom);
                 console.log("entered room", this.currentRoom, "from", previousRoomId)
-                // console.log("currentRoom variables", previousRoomId, direction);
                 if(this.currentRoom % 50 === 0) {
                     console.log('Found Map Locations:')
                     console.log("this.shops",this.shops)
@@ -114,13 +93,9 @@ class Traverse {
             console.log("moving back along this path:", path)
             const nextRoomId = path.shift();
             const neighbors = this.graph[this.currentRoom];
-            // console.log("next room to move back to", nextRoomId)
-            // console.log("neighbors", neighbors)
             let direction;
             for (const dir of Object.keys(neighbors)) {
-                // console.log("dir",dir, "neighbors[dir]", neighbors[dir])
                 if (neighbors[dir] === nextRoomId) {
-                    // console.log(nextRoomId, "is in this direction: ", dir)
                     direction = dir;
                     break;
                 }
@@ -135,54 +110,40 @@ class Traverse {
         }
     }
 
-    //Receives previous room ID and current room ID
-    // dirLookUp(from, to) {
-    //     const from_room = from.toString()
-    //     const to_room = to.toString()
-    //     const directions = this.graph[from_room]
-    //     console.log(directions, "inside dirLookup")
-
-    //     for (let i in directions) {
-    //         if (directions[i] !== null && directions[i].toString() === to_room) {
-    //             return directions[i]
-    //         }
-    //     }
-    //     throw new Error("An error has occured in dirlookup")
-    // }
-
     //Main Graph Traversal Method
     traverse() {
-        this.stack.push(this.currentRoom);
-        const unvisitedExits = this.getUnvisitedNeighbors();
-        let exitDirection;
-        // console.log(unvisitedExits, "exits")        
+        this.stack.push(this.currentRoom)
+
+        const unvisitedExits = this.getUnvisitedNeighbors()
+        let exitDirection
         if (unvisitedExits.length > 1) {
             exitDirection = unvisitedExits[this.randomInt(unvisitedExits.length)]
         } else if (unvisitedExits.length === 1) {
             exitDirection = unvisitedExits[0]
         } else if (unvisitedExits.length === 0) {
-            //Pop the current room off stack- it needs no further traversing
-            this.currentRoom = this.stack.pop();
-            // Reached a dead end
-            // Do a BFS for an unvisited room
-            //Returns the shortest path back to the last unvisited room
-            const shortestPath = this.breadthFirst();
-            // console.log("currentRoom",this.currentRoom);
-            // console.log("shortestPath", shortestPath);
+            //Pop current room off stack, don't need any more traversing
+            this.currentRoom = this.stack.pop()
+            //returns the shortest path back to the last unvisited room
+            const shortestPath = this.bfs()
 
-            //If there are no unvisited rooms
-            //Then we are done traversing the graph
-            if (!shortestPath) {
-                return this.graph;
+            // If there are no unvisited rooms
+            // traversal is done
+            if(!shortestPath) {
+                return this.graph
             }
-
-
-            //Move back to first unvisited room
-            //Then recursively call this.traverse()
+            
+            // Move back to first unvisited room
             return this.moveBack(shortestPath)
-                .then(() => {
-                    return this.traverse();
-                });
+            .then(() => {
+                return this.traverse()
+            })
+            
+        } else {
+            // console.log("no rooms in stack left to traverse")
+
+            //No rooms in stack and no unvisited exits in current room
+            //Graph is fully traversed
+            return this.graph;
         }
 
         //If there's a exitDirection that is unvisited
@@ -190,17 +151,13 @@ class Traverse {
         this.visited.add(this.currentRoom);
         return this.move(exitDirection, this.currentRoom);
     }
-    //TODO:
-    //What happens this.bfs() is called?
 
     // checks for unvisited neighbors in the visited property
     getUnvisitedNeighbors(neighbor = null) {
         const directions = neighbor === null ? this.graph[this.currentRoom] : this.graph[neighbor]
-        // console.log(this.graph, this.currentRoom, "neighbors")
-        // console.log(directions, "neighbors")
+
         const unvisited = []
         for (let i in directions) {
-            // console.log(!directions[i], !this.visited.has(directions[i]), "unvisited logic")
             if (directions[i] === null && !this.visited.has(directions[i])) {
                 unvisited.push(i)
             }
@@ -260,12 +217,10 @@ function startCheck(room) {
         .then(res => {
             //Parses graph
             const graph = parseGraph(res.data)
-            // console.log("parsed graph\n", graph)
             return graph
         })
         .then(graph => {
             const room_id = room["room_id"]
-            // console.log(graph, "start check graph")
 
             //If there are no rooms in the database then graph will be undefined
             if (!graph || !graph[room_id]) {
@@ -297,23 +252,19 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
         e: "w"
     }
     newRoom = parseRoomData(newRoom);
-    // console.log("adding room...")
     //If called in startCheck()
     if (!previousRoomId) {
         return axios.addRoom(newRoom)
             .then(res => {
-                // console.log("hit", res.data)
                 return parseGraph(res.data)
             })
             .catch(printErrors);
     } else {
-        // console.log("adding room after move")
         return axios.addRoom({
-                ...newRoom,
-                ["room_" + oppositeDirection[directionMoved]]: previousRoomId
-            })
+            ...newRoom,
+            ["room_" + oppositeDirection[directionMoved]]: previousRoomId
+        })
             .then(() => {
-                // console.log("hit", res.data)
 
                 // Everything between here and catch() occurs
                 // If The newRoom does not exist
@@ -323,7 +274,6 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
                 });
             })
             .then(res => {
-                // console.log("hit", res.data)
                 return parseGraph(res.data)
             })
             .catch(() => {
@@ -341,7 +291,6 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
                 });
             })
             .then(res => {
-                // console.log(Object.keys(err), "add room error")
                 return parseGraph(res.data);
             });
     }
@@ -350,7 +299,6 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
 
 
 function printErrors(error) {
-    // console.log(error)
     throw error
 }
 
@@ -358,7 +306,6 @@ function printErrors(error) {
 function parseGraph(arr) {
     const graph = {}
     if (arr.length !== 0) {
-        // console.log("parseGraph array", arr, graph)
         for (let i of arr) {
             const key = i["room_id"]
 
@@ -381,7 +328,6 @@ function parseGraph(arr) {
                 ...directions
             }
         }
-        // console.log(graph)
         return graph
     }
     return undefined
@@ -395,7 +341,6 @@ function parseRoomData(room) {
     for (let i of roomTableKeys) {
         request[i] = room[i]
     }
-    // console.log(room, "parse room data")
 
     const regex = /\(|\)/g;
 
