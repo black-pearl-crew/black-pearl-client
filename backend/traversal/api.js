@@ -6,6 +6,13 @@ class Traverse {
         this.currentRoom = room;
         this.stack = [];
         this.visited = new Set();
+
+        this.shops = new Set();
+        this.transmogrifiers = new Set();
+        this.shrines = new Set();
+        this.items = new Set();
+        this.terrains = new Set();
+        this.elevations = new Set();
     }
 
     get graph() {
@@ -19,20 +26,6 @@ class Traverse {
 
     get graphLen() {
         return Object.keys(this.graph).length;
-    }
-
-    getShortestPath(unvisited, parentTree) {
-        const shortest_path = [];
-        let parent = parentTree[unvisited];
-        shortest_path.push(unvisited);
-        shortest_path.push(parent);
-        // will stop at null value
-        while (parentTree[parent]) {
-            parent = parentTree[parent];
-            shortest_path.push(parent);
-        }
-        shortest_path.reverse()
-        return shortest_path
     }
 
     bfs() {
@@ -59,27 +52,33 @@ class Traverse {
     }
 
     randomInt(max) {
-        return Math.floor(Math.random() * Math.floor(max))
+        return Math.floor(Math.random() * Math.floor(max));
     }
 
 
     //Move once in a certain direction
     //And update the graph
     move(direction, previousRoomId) {
-        // console.log("currentRoom", this.currentRoom)
-        // console.log("moving", direction)
         axios.move(direction)
             .then(res => {
-                console.log(res.data, "entered this room")
+                this.inspectRoom(res.data);
                 // check if room exists in current cache or if connection is not present
-                return addRoom(res.data, previousRoomId, direction)
+                return addRoom(res.data, previousRoomId, direction);
             })
             .then(res => {
-                console.log(res, "new graph")
                 this.graph = res;
                 this.currentRoom = this.graph[previousRoomId][direction];
-                // console.log("currentRoom variables", previousRoomId, direction)
-                // console.log(this.currentRoom)
+
+                // console.log(res, "<- new graph", "in room ->", this.currentRoom);
+                console.log("entered room", this.currentRoom, "from", previousRoomId)
+                if(this.currentRoom % 50 === 0) {
+                    console.log('Found Map Locations:')
+                    console.log("this.shops",this.shops)
+                    console.log("this.transmogrifiers",this.transmogrifiers)
+                    console.log("this.shrines", this.shrines);
+                    console.log("this.items", this.items);
+                    console.log("this.terrains",this.terrains);
+                }
                 this.traverse();
             })
             .catch(printErrors);
@@ -87,57 +86,36 @@ class Traverse {
 
     //Move in a certain path by room ID
     //Can be multiple rooms
-    moveBack(path) {
-        // console.log("moving back along this path:", path)
+    moveBack(path) {        
         if (path.length === 0) {
             return;
         } else {
+            console.log("moving back along this path:", path)
             const nextRoomId = path.shift();
             const neighbors = this.graph[this.currentRoom];
-            // console.log("next room to move back to", nextRoomId)
-            // console.log("neighbors", neighbors)
             let direction;
             for (const dir of Object.keys(neighbors)) {
-                // console.log("dir",dir, "neighbors[dir]", neighbors[dir])
                 if (neighbors[dir] === nextRoomId) {
-                    // console.log(nextRoomId, "is in this direction: ", dir)
                     direction = dir;
                     break;
                 }
             }
-            // console.log("moving back- headed", direction)
-            return axios.move(direction)
-                .then((res) => {
-                    this.currentRoom = res.data.room_id;
-                    return this.moveBack(path);
-                })
-                .catch(printErrors);
-        }
-    }
 
-    //Receives previous room ID and current room ID
-    dirLookUp(from, to) {
-        const from_room = from.toString()
-        const to_room = to.toString()
-        const directions = this.graph[from_room]
-        // console.log(directions, "inside dirLookup")
-
-        for (let i in directions) {
-            if (directions[i] !== null && directions[i].toString() === to_room) {
-                return directions[i]
-            }
+            return axios.wiseExplorer(direction,nextRoomId.toString())
+            .then((res) => {
+                this.currentRoom = res.data.room_id;
+                return this.moveBack(path);
+            })
+            .catch(printErrors)
         }
-        throw new Error("An error has occured in dirlookup")
     }
 
     //Main Graph Traversal Method
     traverse() {
         this.stack.push(this.currentRoom)
-        console.log("current", this.currentRoom)
 
         const unvisitedExits = this.getUnvisitedNeighbors()
         let exitDirection
-        // console.log(unvisitedExits, "exits")
         if (unvisitedExits.length > 1) {
             exitDirection = unvisitedExits[this.randomInt(unvisitedExits.length)]
         } else if (unvisitedExits.length === 1) {
@@ -177,16 +155,34 @@ class Traverse {
     // checks for unvisited neighbors in the visited property
     getUnvisitedNeighbors(neighbor = null) {
         const directions = neighbor === null ? this.graph[this.currentRoom] : this.graph[neighbor]
-        // console.log(this.graph, this.currentRoom, "neighbors")
-        // console.log(directions, "neighbors")
+
         const unvisited = []
         for (let i in directions) {
-            // console.log(!directions[i], !this.visited.has(directions[i]), "unvisited logic")
-            if (!directions[i] && !this.visited.has(directions[i])) {
+            if (directions[i] === null && !this.visited.has(directions[i])) {
                 unvisited.push(i)
             }
         }
         return unvisited
+    }
+
+    inspectRoom(roomData) {
+        if(roomData.title.toLowerCase().includes("shop")) {
+            this.shops.add(roomData.room_id);
+            console.log("Shop Found At Room #", roomData.room_id)
+        }
+        if(roomData.title.toLowerCase().includes("shrine")) {
+            this.shrine.add(roomData.room_id);
+            console.log("Shrine Found At Room #", roomData.room_id)
+        }
+        if(roomData.title.toLowerCase().includes("transmogriphier")) {
+            this.transmogrifiers.add(roomData.room_id);
+            console.log("Transmogrifier Found At Room #", roomData.room_id)
+        }
+        this.terrains.add(roomData.terrain)
+        this.elevations.add(roomData.elevation)
+        roomData.items.forEach(item => {
+            this.items.add(item)
+        });
     }
 
 }
@@ -221,12 +217,10 @@ function startCheck(room) {
         .then(res => {
             //Parses graph
             const graph = parseGraph(res.data)
-            // console.log("parsed graph\n", graph)
             return graph
         })
         .then(graph => {
             const room_id = room["room_id"]
-            // console.log(graph, "start check graph")
 
             //If there are no rooms in the database then graph will be undefined
             if (!graph || !graph[room_id]) {
@@ -236,35 +230,6 @@ function startCheck(room) {
             }
         })
         .catch(printErrors)
-}
-
-
-function reloadGraph() {
-    Promise.all([getCurrentRoom(), getGraph()])
-        .then(res => {
-            // console.log(res, "res from reload graph")
-            throw new Error("testing reload graph")
-            const currentRoom = res[0]["room_id"]
-            return [currentRoom, res[1]]
-        })
-        .catch(printErrors)
-
-}
-
-function getCurrentRoom() {
-    return axios.init()
-        .then(res => {
-            return res.data
-        })
-        .catch(printErrors)
-}
-
-function getGraph() {
-    return axios.getGraph()
-        .then(res => {
-            const graph = parseGraph(res.data)
-            return graph
-        }).catch(printErrors)
 }
 
 //Add a room to the backend database
@@ -287,26 +252,19 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
         e: "w"
     }
     newRoom = parseRoomData(newRoom);
-    // console.log("adding room...")
     //If called in startCheck()
     if (!previousRoomId) {
         return axios.addRoom(newRoom)
             .then(res => {
-                // console.log("hit", res.data)
                 return parseGraph(res.data)
             })
-            .catch((err) => {
-                // console.log(Object.keys(err), "add room error")
-                return reloadGraph()
-            });
+            .catch(printErrors);
     } else {
-        // console.log("adding room after move")
         return axios.addRoom({
             ...newRoom,
             ["room_" + oppositeDirection[directionMoved]]: previousRoomId
         })
             .then(() => {
-                // console.log("hit", res.data)
 
                 // Everything between here and catch() occurs
                 // If The newRoom does not exist
@@ -316,7 +274,6 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
                 });
             })
             .then(res => {
-                // console.log("hit", res.data)
                 return parseGraph(res.data)
             })
             .catch(() => {
@@ -334,14 +291,14 @@ function addRoom(newRoom, previousRoomId, directionMoved) {
                 });
             })
             .then(res => {
-                // console.log(Object.keys(err), "add room error")
                 return parseGraph(res.data);
             });
     }
 }
 
+
+
 function printErrors(error) {
-    // console.log(error)
     throw error
 }
 
@@ -349,7 +306,6 @@ function printErrors(error) {
 function parseGraph(arr) {
     const graph = {}
     if (arr.length !== 0) {
-        // console.log("parseGraph array", arr, graph)
         for (let i of arr) {
             const key = i["room_id"]
 
@@ -372,7 +328,6 @@ function parseGraph(arr) {
                 ...directions
             }
         }
-        // console.log(graph)
         return graph
     }
     return undefined
@@ -386,7 +341,6 @@ function parseRoomData(room) {
     for (let i of roomTableKeys) {
         request[i] = room[i]
     }
-    // console.log(room, "parse room data")
 
     const regex = /\(|\)/g;
 
