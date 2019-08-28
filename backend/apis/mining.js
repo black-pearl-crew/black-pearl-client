@@ -59,8 +59,12 @@ function startMining() {
                                 blockFound = true;
                                 submitProof(msg.proof)
                                     .then(res => {
-                                        console.log('Proof Submitted');
-                                        console.log(res.data);
+                                        console.log(`Proof Submitted Successfully \u{1F535}\u{1F535}\u{1F535}`);
+                                        if (res.data.messages[0].includes('New Block Forged')) {
+                                            console.log('New Block Forged \u{1F973}\u{1F973}\u{1F973}\u{1F973}')
+                                        } else {
+                                            console.log(`${res.data.messages[0]} SAD! \u{1F92A}\u{1F92A}\u{1F92A}`)
+                                        }
                                         // Get last proof and make sure difficulty has not changed
                                         return lastProof();
                                     })
