@@ -6,6 +6,13 @@ class Traverse {
         this.currentRoom = room;
         this.stack = [];
         this.visited = new Set();
+
+        this.shops = new Set();
+        this.transmogrifiers = new Set();
+        this.shrines = new Set();
+        this.items = new Set();
+        this.terrains = new Set();
+        this.elevations = new Set();
     }
 
     get graph() {
@@ -36,6 +43,7 @@ class Traverse {
     }
 
     breadthFirst() {
+        // console.log("Starting BreadthFirst From", this.currentRoom)
         const queue = [];
         queue.push([this.currentRoom]);
         const found = [];
@@ -43,8 +51,10 @@ class Traverse {
         while (queue.length > 0) {
             const path = queue.shift();
             const vertex = path[path.length - 1];
+            // console.log("testing path: ", path)
             if (!found.includes(vertex)) {
                 if (this.getUnvisitedNeighbors(vertex).length > 0) {
+                    // console.log("unvisited neighbors at", vertex)
                     return path.slice(1);
                 } else {
                     found.push(vertex);
@@ -104,16 +114,25 @@ class Traverse {
         // console.log("moving", direction)
         axios.move(direction)
             .then(res => {
-                console.log(res.data, "entered this room")
+                this.inspectRoom(res.data);
                 // check if room exists in current cache or if connection is not present
-                return addRoom(res.data, previousRoomId, direction)
+                return addRoom(res.data, previousRoomId, direction);
             })
             .then(res => {
-                console.log(res, "new graph")
                 this.graph = res;
                 this.currentRoom = this.graph[previousRoomId][direction];
-                // console.log("currentRoom variables", previousRoomId, direction)
-                // console.log(this.currentRoom)
+
+                // console.log(res, "<- new graph", "in room ->", this.currentRoom);
+                console.log("entered room", this.currentRoom, "from", previousRoomId)
+                // console.log("currentRoom variables", previousRoomId, direction);
+                if(this.currentRoom % 50 === 0) {
+                    console.log('Found Map Locations:')
+                    console.log("this.shops",this.shops)
+                    console.log("this.transmogrifiers",this.transmogrifiers)
+                    console.log("this.shrines", this.shrines);
+                    console.log("this.items", this.items);
+                    console.log("this.terrains",this.terrains);
+                }
                 this.traverse();
             })
             .catch(printErrors);
@@ -121,11 +140,11 @@ class Traverse {
 
     //Move in a certain path by room ID
     //Can be multiple rooms
-    moveBack(path) {
-        // console.log("moving back along this path:", path)
+    moveBack(path) {        
         if (path.length === 0) {
             return;
         } else {
+            console.log("moving back along this path:", path)
             const nextRoomId = path.shift();
             const neighbors = this.graph[this.currentRoom];
             // console.log("next room to move back to", nextRoomId)
@@ -150,19 +169,19 @@ class Traverse {
     }
 
     //Receives previous room ID and current room ID
-    dirLookUp(from, to) {
-        const from_room = from.toString()
-        const to_room = to.toString()
-        const directions = this.graph[from_room]
-        console.log(directions, "inside dirLookup")
+    // dirLookUp(from, to) {
+    //     const from_room = from.toString()
+    //     const to_room = to.toString()
+    //     const directions = this.graph[from_room]
+    //     console.log(directions, "inside dirLookup")
 
-        for (let i in directions) {
-            if (directions[i] !== null && directions[i].toString() === to_room) {
-                return directions[i]
-            }
-        }
-        throw new Error("An error has occured in dirlookup")
-    }
+    //     for (let i in directions) {
+    //         if (directions[i] !== null && directions[i].toString() === to_room) {
+    //             return directions[i]
+    //         }
+    //     }
+    //     throw new Error("An error has occured in dirlookup")
+    // }
 
     //Main Graph Traversal Method
     traverse() {
@@ -215,11 +234,31 @@ class Traverse {
         const unvisited = []
         for (let i in directions) {
             // console.log(!directions[i], !this.visited.has(directions[i]), "unvisited logic")
-            if (!directions[i] && !this.visited.has(directions[i])) {
+            if (directions[i] === null && !this.visited.has(directions[i])) {
                 unvisited.push(i)
             }
         }
         return unvisited
+    }
+
+    inspectRoom(roomData) {
+        if(roomData.title.toLowerCase().includes("shop")) {
+            this.shops.add(roomData.room_id);
+            console.log("Shop Found At Room #", roomData.room_id)
+        }
+        if(roomData.title.toLowerCase().includes("shrine")) {
+            this.shrine.add(roomData.room_id);
+            console.log("Shrine Found At Room #", roomData.room_id)
+        }
+        if(roomData.title.toLowerCase().includes("transmogriphier")) {
+            this.transmogrifiers.add(roomData.room_id);
+            console.log("Transmogrifier Found At Room #", roomData.room_id)
+        }
+        this.terrains.add(roomData.terrain)
+        this.elevations.add(roomData.elevation)
+        roomData.items.forEach(item => {
+            this.items.add(item)
+        });
     }
 
 }
