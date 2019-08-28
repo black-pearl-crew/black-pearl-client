@@ -6,6 +6,7 @@ class Traverse {
         this.currentRoom = room;
         this.stack = [];
         this.visited = new Set();
+        this.roomsCollected = new Set();
     }
 
     get graph() {
@@ -22,14 +23,21 @@ class Traverse {
     }
 
 
-    bfs(node = null) {
-        const checkArgs = (node, vertex) => {
-            if (vertex === node) {
-                return true;
-            } else {
+    checkArgs(type,node,vertex) {
+        switch(type) {
+            case "lastUnvisited":
                 return this.getUnvisitedNeighbors(vertex).length > 0;
-            }
+            case "closestUncollected":
+                return !this.roomsCollected.has(vertex);
+            case "roomId":
+                if (vertex === node) {
+                    return true;
+                }
+                return false;
         }
+    }
+
+    bfs(type,node=null) {
         const queue = []
         queue.push([this.currentRoom])
         const found = []
@@ -37,7 +45,7 @@ class Traverse {
             const path = queue.shift();
             const vertex = path[path.length - 1];
             if (!found.includes(vertex)) {
-                if (this.checkArgs(node, vertex)) {
+                if (this.checkArgs(type,node,vertex)) {
                     return path.slice(1);
                 } else {
                     found.push(vertex);
@@ -61,19 +69,20 @@ class Traverse {
             .then(({
                 data
             }) => {
-                console.log(data)
                 if (data.encumbrance === data.strength) {
                     console.log(data)
                     console.log("Backpack full- Return to shop")
-                    const pathToShop = this.bfs(1);
+                    const pathToShop = this.bfs("roomId", 1);
+                    this.roomsCollected.clear()
                     return this.moveBack(pathToShop)
                         .then(() => {
                             return Promise.all(data.inventory.map(item =>
-                                axios.sell(item)))
+                                axios.sell(item).then(axios.sell(item,true))))
                         })
                         .then(() => {
+                            console.log("\u{1F911}\u{1F911}\u{1F911} Items Sold- You A Rich! \u{1F911}\u{1F911}\u{1F911}")
                             return this.collectTreasure()
-                        })
+                        });
                 } else {
                     console.log("Collecting treasure...")
                     return this.collectTreasure()
@@ -86,6 +95,7 @@ class Traverse {
         console.log("Collecting treasure... \u{1F4B0}\u{1F4B0}\u{1F4B0}\u{1F4B0}")
 
         const checkRoomData = (items, roomId) => {
+            this.roomsCollected.add(roomId);
             if (items.length > 0) {
                 if (items.includes("shiny treasure")) {
                     return this.take("shiny treasure");
@@ -99,7 +109,7 @@ class Traverse {
                     return;
                 }
             } else {
-                return this.wiseMove()
+                return this.goToClosestUncollected()
             }
         }
 
@@ -123,19 +133,13 @@ class Traverse {
             })
     }
 
-    wiseMove() {
-        const neighbors = this.graph[this.currentRoom];
-        var keys = Object.keys(neighbors);
-        const randDirection = keys[keys.length * Math.random() << 0];
-        const nextRoomId = neighbors[randDirection];
-        // console.log(randDirection,nextRoomId)
-        console.log("wiseMove While Collecting... \u{1F63B}, nextRoomId", nextRoomId)
-        return axios.wiseExplorer(randDirection, nextRoomId.toString())
-            .then(res => {
-                this.currentRoom = res.data.room_id;
-                // console.log(res.data, "collecting with room data")
-                return this.collectTreasure(res.data);
-            });
+    goToClosestUncollected() {
+        console.log("going to closest uncollected room....")
+        const pathToRoom = this.bfs("closestUncollected");
+        return this.moveBack(pathToRoom)
+            .then(() => {
+                return this.collectTreasure()
+            })
     }
 
     //Move once in a certain direction
@@ -166,7 +170,7 @@ class Traverse {
     //Can be multiple rooms
     moveBack(path) {
         if (path.length === 0) {
-            return;
+            return Promise.resolve()
         } else {
             console.log("moving back along this path:", path)
             const nextRoomId = path.shift();
@@ -202,7 +206,7 @@ class Traverse {
             //Pop current room off stack, don't need any more traversing
             this.currentRoom = this.stack.pop()
             //returns the shortest path back to the last unvisited room
-            const shortestPath = this.bfs()
+            const shortestPath = this.bfs("lastUnvisited")
 
             // If there are no unvisited rooms
             // traversal is done

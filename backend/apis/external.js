@@ -45,17 +45,24 @@ function wear(name) {
         name
     });
 }
-    
+
 function drop(name) {
     return lambdaAxios.post(`${process.env.LAMBDA}/adv/drop/`, {
         name
     });
 }
 
-function sell(name) {
-    return lambdaAxios.post(`${process.env.LAMBDA}/adv/sell/`, {
-        name
-    });
+function sell(name, confirm = false) {
+    if (!confirm) {
+        return lambdaAxios.post(`${process.env.LAMBDA}/adv/sell/`, {
+            name
+        });
+    } else {
+        return lambdaAxios.post(`${process.env.LAMBDA}/adv/sell/`, {
+            name,
+            confirm: "yes"
+        });
+    }
 }
 
 function transmogrify(name) {
