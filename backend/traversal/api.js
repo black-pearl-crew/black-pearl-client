@@ -39,7 +39,6 @@ class Traverse {
         const queue = []
         queue.push([this.currentRoom])
         const found = []
-
         while (queue.length > 0) {
             const path = queue.shift();
             const vertex = path[path.length - 1];
@@ -49,9 +48,9 @@ class Traverse {
                 } else {
                     found.push(vertex);
                     for (const nextVertex in this.graph[vertex]) {
-                        const newPath = path.slice()
-                        newPath.push(this.graph[vertex][nextVertex])
-                        queue.push(newPath)
+                        const newPath = path.slice();
+                        newPath.push(this.graph[vertex][nextVertex]);
+                        queue.push(newPath);
                     }
                 }
             }
@@ -63,43 +62,56 @@ class Traverse {
         return Math.floor(Math.random() * Math.floor(max))
     }
 
+
+    //Move once in a certain direction
+    //And update the graph
     move(direction, previousRoomId) {
+        // console.log("currentRoom", this.currentRoom)
+        // console.log("moving", direction)
         axios.move(direction)
             .then(res => {
+                console.log(res.data, "entered this room")
                 // check if room exists in current cache or if connection is not present
                 return addRoom(res.data, previousRoomId, direction)
             })
             .then(res => {
-                console.log(res, "res from move")
-                this.graph = res
-                
-
-                this.currentRoom = this.graph[previousRoomId][direction]
-                this.traverse()
+                console.log(res, "new graph")
+                this.graph = res;
+                this.currentRoom = this.graph[previousRoomId][direction];
+                // console.log("currentRoom variables", previousRoomId, direction)
+                // console.log(this.currentRoom)
+                this.traverse();
             })
-            .catch(printErrors)
+            .catch(printErrors);
     }
 
+    //Move in a certain path by room ID
+    //Can be multiple rooms
     moveBack(path) {
-        console.group("moving back", path)
-        if(path.length === 0) {
+        // console.log("moving back along this path:", path)
+        if (path.length === 0) {
             return;
         } else {
-            const nextRoomId = path.shift()
-            const neighbors = this.graph[this.currentRoom]
+            const nextRoomId = path.shift();
+            const neighbors = this.graph[this.currentRoom];
+            // console.log("next room to move back to", nextRoomId)
+            // console.log("neighbors", neighbors)
             let direction;
-            for(const dir of Object.keys(neighbors)) {
+            for (const dir of Object.keys(neighbors)) {
+                // console.log("dir",dir, "neighbors[dir]", neighbors[dir])
                 if (neighbors[dir] === nextRoomId) {
+                    // console.log(nextRoomId, "is in this direction: ", dir)
                     direction = dir;
                     break;
                 }
             }
+            // console.log("moving back- headed", direction)
             return axios.move(direction)
-            .then((res) => {
-                this.currentRoom = res.data.room_id
-                return this.moveBack(path);
-            })
-            .catch(printErrors)
+                .then((res) => {
+                    this.currentRoom = res.data.room_id;
+                    return this.moveBack(path);
+                })
+                .catch(printErrors);
         }
     }
 
@@ -161,9 +173,6 @@ class Traverse {
         this.visited.add(this.currentRoom);
         return this.move(exitDirection, this.currentRoom);
     }
-    //TODO:
-    //What happens this.bfs() is called?
-    //What happens when this.move() is called?
 
     // checks for unvisited neighbors in the visited property
     getUnvisitedNeighbors(neighbor = null) {
