@@ -12,6 +12,7 @@ module.exports = {
     init,
     move,
     pray,
+    submitProof,
     changeName,
     wiseExplorer,
     addRoom,
@@ -92,6 +93,11 @@ function pray() {
     return lambdaAxios.post(`${process.env.LAMBDA}/adv/pray/`, {});
 }
 
+function submitProof(proof) {
+    return lambdaAxios.post('https://lambda-treasure-hunt.herokuapp.com/api/bc/mine/', {
+        proof
+    });
+}
 
 // An accurate map is the wise explorer's best friend.
 // By predicting the ID of the destination room,

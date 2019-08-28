@@ -258,6 +258,37 @@ class Traverse {
         
     }
 
+    goToClosest() {
+        console.log("going to closest uncollected room....")
+        const pathToRoom = this.bfs("closestUncollected");
+        return this.moveBack(pathToRoom)
+            .then(() => {
+                return this.wanderToMine()
+            })
+    }
+
+    wanderToMine(){
+        if(this.roomsCollected.size < this.graphLen){
+            this.roomsCollected.add(this.currentRoom)
+            wanderMine()
+            .then(res => {
+                if(res['errors'].length >0){
+                    console.log(res['errors'])
+                } else {
+                    console.log(res)
+                    console.log('Found a place to mine!!!')
+                }
+                return this.goToClosest()
+            })
+            .catch(printErrors)
+
+        } else {
+            console.log("no more rooms")
+            return Promise.resolve()
+        }
+        
+    }
+
     findMine(){
         return this.goToPoint("Mt. Holloway")
         .then(res => {
@@ -511,11 +542,21 @@ function prayAtShrine(temple){
     .catch(printErrors)
 }
 
+function wanderMine(){
+    return axios.submitProof([1])
+    .then(res => {
+        console.log(res.data)
+        return res.data
+    })
+    .catch(printErrors)
+}
+
 function findMine(){
     return initExplore()
     .then( res => {
         res.traveler.rawGraph = parseRawGraph(res.rawGraph)
-        return res.traveler.findMine()
+        return res.traveler.wanderToMine()
+        // return res.traveler.findMine()
     })
     .then(res => {
         console.log(res,"\nFound a place to mine")
