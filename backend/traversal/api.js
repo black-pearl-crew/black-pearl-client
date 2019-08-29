@@ -69,8 +69,8 @@ class Traverse {
             .then(({
                 data
             }) => {
-                if (data.encumbrance === data.strength) {
-                    console.log(data)
+                console.log(data)
+                if (data.encumbrance >= data.strength) {
                     console.log("Backpack full- Return to shop")
                     const pathToShop = this.bfs("roomId", 1);
                     this.roomsCollected.clear()
