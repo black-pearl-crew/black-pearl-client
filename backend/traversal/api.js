@@ -40,13 +40,13 @@ class Traverse {
     bfs(type,node=null) {
         const queue = []
         queue.push([this.currentRoom])
-        // console.log("current room", this.currentRoom)
+            // console.log("current room", this.currentRoom)
         const found = []
         while (queue.length > 0) {
             const path = queue.shift();
-            // console.log("bfs path", path)
+                // console.log("bfs path", path)
             const vertex = path[path.length - 1];
-            // console.log("bfs vertex", vertex)
+                // console.log("bfs vertex", vertex)
             if (!found.includes(vertex)) {
                 if (this.checkArgs(type,node,vertex)) {
                     return path.slice(1);
@@ -72,7 +72,7 @@ class Traverse {
             .then(({
                 data
             }) => {
-                if (data.encumbrance === data.strength) {
+                if (data.encumbrance >= data.strength) {
                     console.log(data)
                     console.log("Backpack full- Return to shop")
                     const pathToShop = this.bfs("roomId", 1);
@@ -434,6 +434,7 @@ function startCheck(room) {
 
 //3. The new room is being created in move() AND The new room DOES NOT exist
 //3a. Returns parseGraph()
+
 function addRoom(newRoom, previousRoomId, directionMoved) {
     const oppositeDirection = {
         n: "s",
