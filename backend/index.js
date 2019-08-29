@@ -24,7 +24,8 @@ const traversalApi = require("./traversal/api");
 // traversalApi.traversal();
 // traversalApi.collectTreasure();
 // traversalApi.changeName("cammac");
-traversalApi.prayAtShrine("The Peak of Mt. Holloway")
-// traversalApi.mineCoinz(250);
+// traversalApi.prayAtShrine("The Peak of Mt. Holloway")
+// traversalApi.prayAtShrine("Linh's Shrine")
+traversalApi.mineCoinz(250);
 
 server.listen(port, () => console.log(`\u{1F680}\u{1F680}\u{1F680} http://localhost:${port}/ \u{1F680}\u{1F680}\u{1F680}`));
