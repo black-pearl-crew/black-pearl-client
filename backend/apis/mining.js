@@ -50,7 +50,7 @@ function startMining() {
             var blockFound = false;
 
             // Fork workers.
-            for (let i = 0; i < os.cpus().length - 1; i++) {
+            for (let i = 0; i < os.cpus().length - 2; i++) {
                 const worker = cp.fork('./util/miningWorker.js');
                 workers.push(worker);
 

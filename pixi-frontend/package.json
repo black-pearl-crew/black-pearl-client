@@ -1,0 +1,16 @@
+{
+  "name": "pixi-frontend",
+  "version": "1.0.0",
+  "description": "___           _ _         ___                           \r    /   \\_____   _(_| |___    / _ \\__ _ _ __ __ _  __ _  ___ \r   / /\\ / _ \\ \\ / | | / __|  / /_\\/ _` | '__/ _` |/ _` |/ _ \\\r  / /_/|  __/\\ V /| | \\__ \\ / /_\\| (_| | | | (_| | (_| |  __/\r /___,' \\___| \\_/ |_|_|___/ \\____/\\__,_|_|  \\__,_|\\__, |\\___|\r                                                  |___/",
+  "main": "index.js",
+  "scripts": {
+    "dev": "live-server --entry-file=index.htm",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "live-server": "^1.2.1"
+  }
+}

@@ -22,9 +22,15 @@ server.use('/rooms', roomsRouter);
 //Traversal- For testing purposes
 const traversalApi = require("./traversal/api");
 // traversalApi.traversal();
-traversalApi.collectTreasure();
+// traversalApi.collectTreasure();
 //traversalApi.changeName("\u{1F680}\u{1F680}\u{1F680} \u{1F921} \u{1F680}\u{1F680}\u{1F680}");
 // traversalApi.mineCoinz(250);
 // traversalApi.prayAtShrine("Linh's Shrine")
+
+// const lambdaApi = require('./apis/mining');
+// console.log(lambdaApi.getBalance().then(res => {
+//     console.log(res.data)
+// }))
+//2,4,8,16,32,64,128,256
 
 server.listen(port, () => console.log(`\u{1F680}\u{1F680}\u{1F680} http://localhost:${port}/ \u{1F680}\u{1F680}\u{1F680}`));

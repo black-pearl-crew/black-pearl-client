@@ -97,16 +97,14 @@ class Traverse {
         const checkRoomData = (items, roomId) => {
             this.roomsCollected.add(roomId);
             if (items.length > 0) {
-                if (items.includes("shiny treasure")) {
-                    return this.take("shiny treasure");
-                } else if (items.includes("small treasure")) {
-                    return this.take("small treasure");
-                } else if (items.includes("tiny treasure")) {
-                    return this.take("tiny treasure");
+                if (items.includes("golden egg")) {
+                    return this.take("golden egg");
+                } else if (items.includes("colorful egg")) {
+                    return this.take("colorful egg");
+                } else if (items.includes("regular egg")) {
+                    return this.take("regular egg");
                 } else {
-                    console.log("\n\n\n\n\n\n\nUnidentified Object Located In Room #", roomId);
-                    console.log("Items:", items);
-                    return;
+                    return this.goToClosestUncollected()
                 }
             } else {
                 return this.goToClosestUncollected()
