@@ -34,7 +34,13 @@ function stopMining() {
 }
 
 function startMining() {
-    lastProof()
+    getBalance()
+        .then(({
+            data
+        }) => {
+            console.log(data);
+            return lastProof();
+        })
         .then(lambdaRes => {
             var {
                 proof,
@@ -44,16 +50,14 @@ function startMining() {
             var blockFound = false;
 
             // Fork workers.
-            for (let i = 0; i < os.cpus().length - 1; i++) {
+            for (let i = 0; i < os.cpus().length - 2; i++) {
                 const worker = cp.fork('./util/miningWorker.js');
                 workers.push(worker);
 
                 // Receive messages from this worker and handle them in the master process.
                 worker.on('message', function (msg) {
-                    console.log(msg)
                     switch (msg.type) {
                         case 'block-found':
-                            console.log("switch case found")
                             //Submit Proof
                             if (!blockFound) {
                                 blockFound = true;
@@ -85,7 +89,7 @@ function startMining() {
                                         });
                                     })
                                     .catch(err => {
-                                        console.log(err)
+                                        console.log(err.data.errors)
                                     });
                             }
                             default:
@@ -113,7 +117,7 @@ function startMining() {
 
                         // If the difficulty or last proof changed
                         // Then update workers of the last proof and new difficulty
-                        if (difficulty !== newDifficulty) {
+                        if (difficulty !== newDifficulty || proof !== newProof) {
                             console.log("Updating Workers...");
                             proof = newProof;
                             difficulty = newDifficulty;
